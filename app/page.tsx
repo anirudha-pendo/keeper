@@ -1,65 +1,151 @@
-import Image from "next/image";
+'use client'
 
-export default function Home() {
+import { useState, useEffect } from 'react'
+import { useUsername } from '@/hooks/use-username'
+import { useSearch } from '@/hooks/use-search'
+import { UsernamePrompt } from '@/components/username-prompt'
+import { BookmarkGrid } from '@/components/bookmark-grid'
+import { BookmarkForm } from '@/components/bookmark-form'
+import { SearchBar } from '@/components/search-bar'
+import { FilterControls } from '@/components/filter-controls'
+import { Button } from '@/components/ui/button'
+import { Separator } from '@/components/ui/separator'
+import { HugeiconsIcon } from '@hugeicons/react'
+import { Add01Icon } from '@hugeicons/core-free-icons'
+import { getBookmarks } from '@/app/actions/bookmarks'
+import type { Bookmark, FilterOptions } from '@/lib/types'
+
+export default function Page() {
+  const { username, setUsername, isLoading: isUsernameLoading } = useUsername()
+  const [bookmarks, setBookmarks] = useState<Bookmark[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [showBookmarkForm, setShowBookmarkForm] = useState(false)
+  const [editingBookmark, setEditingBookmark] = useState<Bookmark | undefined>()
+
+  const [filters, setFilters] = useState<FilterOptions>({
+    query: '',
+    favoriteOnly: false,
+    sortBy: 'recent',
+  })
+
+  const filteredBookmarks = useSearch(bookmarks, filters)
+
+  useEffect(() => {
+    if (username) {
+      loadBookmarks()
+    }
+  }, [username])
+
+  const loadBookmarks = async () => {
+    if (!username) return
+    setIsLoading(true)
+    const result = await getBookmarks(username)
+    if (result.success && result.data) {
+      setBookmarks(result.data)
+    }
+    setIsLoading(false)
+  }
+
+  const handleCloseForm = () => {
+    setShowBookmarkForm(false)
+    setEditingBookmark(undefined)
+    loadBookmarks()
+  }
+
+  const handleEdit = (bookmark: Bookmark) => {
+    setEditingBookmark(bookmark)
+    setShowBookmarkForm(true)
+  }
+
+  const handleAddNew = () => {
+    setEditingBookmark(undefined)
+    setShowBookmarkForm(true)
+  }
+
+  const updateFilters = (updates: Partial<FilterOptions>) => {
+    setFilters((prev) => ({ ...prev, ...updates }))
+  }
+
+  if (isUsernameLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    )
+  }
+
+  if (!username) {
+    return <UsernamePrompt isOpen={true} onSubmit={setUsername} />
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 py-6 max-w-7xl">
+        {/* Header */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight mb-0.5">keeper</h1>
+              <p className="text-xs text-muted-foreground">
+                @{username} · {bookmarks.length} bookmark{bookmarks.length !== 1 ? 's' : ''}
+              </p>
+            </div>
+            <Button onClick={handleAddNew} size="sm">
+              <HugeiconsIcon icon={Add01Icon} strokeWidth={2} className="mr-1.5 h-4 w-4" />
+              New
+            </Button>
+          </div>
+
+          {/* Search and filters */}
+          <div className="space-y-3">
+            <SearchBar
+              value={filters.query}
+              onChange={(query) => updateFilters({ query })}
+              placeholder="Search..."
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            <FilterControls
+              filters={filters}
+              onChange={updateFilters}
+            />
+          </div>
         </div>
-      </main>
+
+        {/* Bookmark grid */}
+        {isLoading ? (
+          <div className="flex items-center justify-center py-16">
+            <p className="text-muted-foreground">Loading bookmarks...</p>
+          </div>
+        ) : filteredBookmarks.length === 0 && filters.query === '' && !filters.favoriteOnly ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <p className="text-muted-foreground text-lg mb-2">No bookmarks yet</p>
+            <p className="text-muted-foreground text-sm mb-4">
+              Click "Add Bookmark" to create your first bookmark
+            </p>
+          </div>
+        ) : filteredBookmarks.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <p className="text-muted-foreground text-lg mb-2">No results found</p>
+            <p className="text-muted-foreground text-sm">
+              Try adjusting your search or filters
+            </p>
+          </div>
+        ) : (
+          <BookmarkGrid
+            bookmarks={filteredBookmarks}
+            username={username}
+            onEdit={handleEdit}
+            onDelete={loadBookmarks}
+          />
+        )}
+
+        {/* Bookmark form dialog */}
+        <BookmarkForm
+          isOpen={showBookmarkForm}
+          onClose={handleCloseForm}
+          username={username}
+          bookmark={editingBookmark}
+        />
+      </div>
     </div>
-  );
+  )
 }
