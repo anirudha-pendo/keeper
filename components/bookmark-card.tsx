@@ -33,18 +33,62 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [faviconError, setFaviconError] = useState(false)
 
+  const trackBookmarkOpen = (method: 'title' | 'dropdown') => {
+    const bookmarkAgeMs = Date.now() - new Date(bookmark.createdAt).getTime()
+    const bookmarkAgeDays = Math.floor(bookmarkAgeMs / (1000 * 60 * 60 * 24))
+
+    if (typeof window !== 'undefined' && (window as any).pendo) {
+      (window as any).pendo.track('bookmark_opened', {
+        bookmark_id: bookmark.id,
+        open_method: method,
+        is_favorite: bookmark.isFavorite,
+        priority: bookmark.priority,
+        bookmark_age_days: bookmarkAgeDays
+      })
+    }
+  }
+
   const handleToggleFavorite = async () => {
     const newState = !isFavorite
+    const previousState = isFavorite
     setIsFavorite(newState)
+
+    // Calculate bookmark age in days
+    const bookmarkAgeMs = Date.now() - new Date(bookmark.createdAt).getTime()
+    const bookmarkAgeDays = Math.floor(bookmarkAgeMs / (1000 * 60 * 60 * 24))
+
     const result = await toggleFavorite(username, bookmark.id, bookmark.isFavorite)
     if (!result.success) {
       setIsFavorite(!newState)
+    } else {
+      // Track favorite toggle event
+      if (typeof window !== 'undefined' && (window as any).pendo) {
+        const eventName = newState ? 'bookmark_favorited' : 'bookmark_unfavorited'
+        ;(window as any).pendo.track(eventName, {
+          bookmark_id: bookmark.id,
+          previous_state: previousState,
+          priority: bookmark.priority,
+          bookmark_age_days: bookmarkAgeDays
+        })
+      }
     }
   }
 
   const handleDelete = async () => {
+    const bookmarkAgeMs = Date.now() - new Date(bookmark.createdAt).getTime()
+    const bookmarkAgeDays = Math.floor(bookmarkAgeMs / (1000 * 60 * 60 * 24))
+
     const result = await deleteBookmark(username, bookmark.id)
     if (result.success) {
+      // Track bookmark deletion
+      if (typeof window !== 'undefined' && (window as any).pendo) {
+        (window as any).pendo.track('bookmark_deleted', {
+          bookmark_id: bookmark.id,
+          bookmark_age_days: bookmarkAgeDays,
+          was_favorite: bookmark.isFavorite,
+          priority: bookmark.priority
+        })
+      }
       setShowDeleteDialog(false)
       onDelete?.()
     }
@@ -134,6 +178,7 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
                     target="_blank"
                     rel="noopener noreferrer"
                     className="hover:text-primary transition-colors"
+                    onClick={() => trackBookmarkOpen('title')}
                   >
                     {bookmark.title}
                   </a>
@@ -171,7 +216,10 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => window.open(bookmark.url, '_blank')}>
+                  <DropdownMenuItem onClick={() => {
+                    trackBookmarkOpen('dropdown')
+                    window.open(bookmark.url, '_blank')
+                  }}>
                     <HugeiconsIcon icon={ExternalLink} strokeWidth={2} className="mr-2 h-4 w-4" />
                     Open
                   </DropdownMenuItem>
@@ -180,7 +228,20 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
                     Edit
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => setShowDeleteDialog(true)} className="text-destructive">
+                  <DropdownMenuItem onClick={() => {
+                    setShowDeleteDialog(true)
+                    // Track delete confirmation shown
+                    const bookmarkAgeMs = Date.now() - new Date(bookmark.createdAt).getTime()
+                    const bookmarkAgeDays = Math.floor(bookmarkAgeMs / (1000 * 60 * 60 * 24))
+                    if (typeof window !== 'undefined' && (window as any).pendo) {
+                      (window as any).pendo.track('delete_confirmation_shown', {
+                        bookmark_id: bookmark.id,
+                        is_favorite: bookmark.isFavorite,
+                        priority: bookmark.priority,
+                        bookmark_age_days: bookmarkAgeDays
+                      })
+                    }
+                  }} className="text-destructive">
                     <HugeiconsIcon icon={DeleteIcon} strokeWidth={2} className="mr-2 h-4 w-4" />
                     Delete
                   </DropdownMenuItem>
@@ -226,7 +287,14 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => {
+              // Track delete confirmation cancelled
+              if (typeof window !== 'undefined' && (window as any).pendo) {
+                (window as any).pendo.track('delete_confirmation_cancelled', {
+                  bookmark_id: bookmark.id
+                })
+              }
+            }}>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Delete
             </AlertDialogAction>

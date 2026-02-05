@@ -21,6 +21,15 @@ export function SearchBar({ value, onChange, placeholder = 'Search bookmarks...'
   useEffect(() => {
     const timer = setTimeout(() => {
       onChange(inputValue)
+
+      // Track search performed event (only if there's a query)
+      if (inputValue.trim().length > 0 && typeof window !== 'undefined' && (window as any).pendo) {
+        // Note: We can't determine results_count here since filtering happens in parent
+        // This will be tracked with available data
+        (window as any).pendo.track('search_performed', {
+          query_length: inputValue.trim().length
+        })
+      }
     }, 300)
 
     return () => clearTimeout(timer)

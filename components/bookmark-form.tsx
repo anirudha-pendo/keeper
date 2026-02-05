@@ -27,26 +27,39 @@ export function BookmarkForm({ isOpen, onClose, username, bookmark }: BookmarkFo
   })
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [initialFormData, setInitialFormData] = useState<BookmarkInput>({
+    url: '',
+    title: '',
+    description: '',
+    tags: [],
+    isFavorite: false,
+    priority: 0,
+  })
 
   useEffect(() => {
+    const defaultData = {
+      url: '',
+      title: '',
+      description: '',
+      tags: [],
+      isFavorite: false,
+      priority: 0,
+    }
+
     if (bookmark) {
-      setFormData({
+      const data = {
         url: bookmark.url,
         title: bookmark.title,
         description: bookmark.description || '',
         tags: bookmark.tags,
         isFavorite: bookmark.isFavorite,
         priority: bookmark.priority,
-      })
+      }
+      setFormData(data)
+      setInitialFormData(data)
     } else {
-      setFormData({
-        url: '',
-        title: '',
-        description: '',
-        tags: [],
-        isFavorite: false,
-        priority: 0,
-      })
+      setFormData(defaultData)
+      setInitialFormData(defaultData)
     }
     setError('')
   }, [bookmark, isOpen])
@@ -57,6 +70,15 @@ export function BookmarkForm({ isOpen, onClose, username, bookmark }: BookmarkFo
     // Validate URL
     if (!formData.url.trim()) {
       setError('URL is required')
+      // Track validation error
+      if (typeof window !== 'undefined' && (window as any).pendo) {
+        (window as any).pendo.track('bookmark_validation_error', {
+          error_type: 'missing_required_field',
+          error_message: 'URL is required',
+          field_name: 'url',
+          form_mode: bookmark ? 'edit' : 'create'
+        })
+      }
       return
     }
 
@@ -64,12 +86,30 @@ export function BookmarkForm({ isOpen, onClose, username, bookmark }: BookmarkFo
       new URL(formData.url)
     } catch {
       setError('Invalid URL format')
+      // Track validation error
+      if (typeof window !== 'undefined' && (window as any).pendo) {
+        (window as any).pendo.track('bookmark_validation_error', {
+          error_type: 'invalid_url_format',
+          error_message: 'Invalid URL format',
+          field_name: 'url',
+          form_mode: bookmark ? 'edit' : 'create'
+        })
+      }
       return
     }
 
     // Validate title
     if (!formData.title.trim()) {
       setError('Title is required')
+      // Track validation error
+      if (typeof window !== 'undefined' && (window as any).pendo) {
+        (window as any).pendo.track('bookmark_validation_error', {
+          error_type: 'missing_required_field',
+          error_message: 'Title is required',
+          field_name: 'title',
+          form_mode: bookmark ? 'edit' : 'create'
+        })
+      }
       return
     }
 
@@ -84,12 +124,36 @@ export function BookmarkForm({ isOpen, onClose, username, bookmark }: BookmarkFo
       }
 
       if (result.success) {
+        // Track successful bookmark creation/update
+        if (typeof window !== 'undefined' && (window as any).pendo && result.trackingData) {
+          if (bookmark) {
+            (window as any).pendo.track('bookmark_updated', result.trackingData)
+          } else {
+            (window as any).pendo.track('bookmark_created', result.trackingData)
+          }
+        }
         onClose()
       } else {
         setError(result.error || 'Failed to save bookmark')
+        // Track save error
+        if (typeof window !== 'undefined' && (window as any).pendo) {
+          (window as any).pendo.track('bookmark_save_error', {
+            error_message: result.error || 'Failed to save bookmark',
+            operation_type: bookmark ? 'update' : 'create',
+            bookmark_id: bookmark?.id
+          })
+        }
       }
     } catch (err: any) {
       setError(err.message || 'An error occurred')
+      // Track save error
+      if (typeof window !== 'undefined' && (window as any).pendo) {
+        (window as any).pendo.track('bookmark_save_error', {
+          error_message: err.message || 'An error occurred',
+          operation_type: bookmark ? 'update' : 'create',
+          bookmark_id: bookmark?.id
+        })
+      }
     } finally {
       setIsSubmitting(false)
     }
@@ -142,7 +206,22 @@ export function BookmarkForm({ isOpen, onClose, username, bookmark }: BookmarkFo
               <FieldLabel>Priority</FieldLabel>
               <Select
                 value={formData.priority.toString()}
-                onValueChange={(value) => setFormData({ ...formData, priority: parseInt(value) as 0 | 1 | 2 | 3 | 4 | 5 })}
+                onValueChange={(value) => {
+                  const previousPriority = formData.priority
+                  const newPriority = parseInt(value) as 0 | 1 | 2 | 3 | 4 | 5
+
+                  // Track priority set
+                  if (typeof window !== 'undefined' && (window as any).pendo) {
+                    (window as any).pendo.track('priority_set', {
+                      bookmark_id: bookmark?.id,
+                      priority_level: newPriority,
+                      previous_priority: previousPriority,
+                      form_mode: bookmark ? 'edit' : 'create'
+                    })
+                  }
+
+                  setFormData({ ...formData, priority: newPriority })
+                }}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -180,7 +259,26 @@ export function BookmarkForm({ isOpen, onClose, username, bookmark }: BookmarkFo
         </div>
 
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={isSubmitting}>Cancel</AlertDialogCancel>
+          <AlertDialogCancel disabled={isSubmitting} onClick={() => {
+            // Track form cancelled
+            const hasDataEntered = formData.url !== initialFormData.url ||
+                                   formData.title !== initialFormData.title ||
+                                   formData.description !== initialFormData.description
+
+            const fieldsFilled = [
+              formData.url ? 'url' : null,
+              formData.title ? 'title' : null,
+              formData.description ? 'description' : null
+            ].filter(Boolean)
+
+            if (typeof window !== 'undefined' && (window as any).pendo) {
+              (window as any).pendo.track('bookmark_form_cancelled', {
+                form_mode: bookmark ? 'edit' : 'create',
+                had_data_entered: hasDataEntered,
+                fields_filled: fieldsFilled
+              })
+            }
+          }}>Cancel</AlertDialogCancel>
           <AlertDialogAction onClick={handleSubmit} disabled={isSubmitting}>
             {isSubmitting ? 'Saving...' : bookmark ? 'Update' : 'Create'}
           </AlertDialogAction>

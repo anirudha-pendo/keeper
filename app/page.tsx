@@ -21,6 +21,8 @@ export default function Page() {
   const [isLoading, setIsLoading] = useState(true)
   const [showBookmarkForm, setShowBookmarkForm] = useState(false)
   const [editingBookmark, setEditingBookmark] = useState<Bookmark | undefined>()
+  const [hasTrackedEmptyState, setHasTrackedEmptyState] = useState(false)
+  const [hasTrackedNoResults, setHasTrackedNoResults] = useState(false)
 
   const [filters, setFilters] = useState<FilterOptions>({
     query: '',
@@ -42,6 +44,24 @@ export default function Page() {
     const result = await getBookmarks(username)
     if (result.success && result.data) {
       setBookmarks(result.data)
+
+      // Track bookmarks loaded successfully
+      if (typeof window !== 'undefined' && (window as any).pendo && result.trackingData) {
+        (window as any).pendo.track('bookmarks_loaded', {
+          bookmarks_count: result.trackingData.bookmarks_count,
+          load_time_ms: result.trackingData.load_time_ms,
+          username: result.trackingData.username
+        })
+      }
+    } else {
+      // Track bookmarks load error
+      if (typeof window !== 'undefined' && (window as any).pendo && result.trackingData) {
+        (window as any).pendo.track('bookmarks_load_error', {
+          error_message: result.trackingData.error_message,
+          error_type: result.trackingData.error_type,
+          username: result.trackingData.username
+        })
+      }
     }
     setIsLoading(false)
   }
@@ -55,16 +75,63 @@ export default function Page() {
   const handleEdit = (bookmark: Bookmark) => {
     setEditingBookmark(bookmark)
     setShowBookmarkForm(true)
+
+    // Track bookmark form opened for editing
+    if (typeof window !== 'undefined' && (window as any).pendo) {
+      (window as any).pendo.track('bookmark_form_opened', {
+        form_mode: 'edit',
+        triggered_from: 'edit_menu',
+        total_bookmarks_count: bookmarks.length
+      })
+    }
   }
 
   const handleAddNew = () => {
     setEditingBookmark(undefined)
     setShowBookmarkForm(true)
+
+    // Track bookmark form opened
+    if (typeof window !== 'undefined' && (window as any).pendo) {
+      (window as any).pendo.track('bookmark_form_opened', {
+        form_mode: 'create',
+        triggered_from: 'new_button',
+        total_bookmarks_count: bookmarks.length
+      })
+    }
   }
 
   const updateFilters = (updates: Partial<FilterOptions>) => {
     setFilters((prev) => ({ ...prev, ...updates }))
+    setHasTrackedNoResults(false) // Reset tracking when filters change
   }
+
+  // Track empty state and no results views
+  useEffect(() => {
+    if (isLoading || !username) return
+
+    // Track empty state (no bookmarks at all)
+    if (bookmarks.length === 0 && filters.query === '' && !filters.favoriteOnly && !hasTrackedEmptyState) {
+      if (typeof window !== 'undefined' && (window as any).pendo) {
+        (window as any).pendo.track('empty_state_viewed', {
+          username: username
+        })
+      }
+      setHasTrackedEmptyState(true)
+    }
+
+    // Track no search results
+    if (filteredBookmarks.length === 0 && (filters.query !== '' || filters.favoriteOnly) && !hasTrackedNoResults && bookmarks.length > 0) {
+      if (typeof window !== 'undefined' && (window as any).pendo) {
+        (window as any).pendo.track('no_search_results', {
+          query: filters.query,
+          has_favorite_filter: filters.favoriteOnly,
+          sort_method: filters.sortBy,
+          total_bookmarks_count: bookmarks.length
+        })
+      }
+      setHasTrackedNoResults(true)
+    }
+  }, [isLoading, username, bookmarks.length, filteredBookmarks.length, filters, hasTrackedEmptyState, hasTrackedNoResults])
 
   if (isUsernameLoading) {
     return (

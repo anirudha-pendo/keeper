@@ -12,12 +12,40 @@ interface FilterControlsProps {
 }
 
 export function FilterControls({ filters, onChange }: FilterControlsProps) {
+  const handleSortChange = (value: string) => {
+    const previousSortMethod = filters.sortBy
+    const newSortMethod = value as FilterOptions['sortBy']
+
+    // Track sort method changed
+    if (typeof window !== 'undefined' && (window as any).pendo) {
+      (window as any).pendo.track('sort_method_changed', {
+        sort_method: newSortMethod,
+        previous_sort_method: previousSortMethod
+      })
+    }
+
+    onChange({ sortBy: newSortMethod })
+  }
+
+  const handleFavoritesToggle = () => {
+    const newState = !filters.favoriteOnly
+
+    // Track favorites filter toggled
+    if (typeof window !== 'undefined' && (window as any).pendo) {
+      (window as any).pendo.track('filter_favorites_toggled', {
+        filter_enabled: newState
+      })
+    }
+
+    onChange({ favoriteOnly: newState })
+  }
+
   return (
     <div className="flex items-center gap-2">
       {/* Sort */}
       <Select
         value={filters.sortBy}
-        onValueChange={(value) => onChange({ sortBy: value as FilterOptions['sortBy'] })}
+        onValueChange={handleSortChange}
       >
         <SelectTrigger className="w-[180px]">
           <SelectValue placeholder="Sort by..." />
@@ -33,7 +61,7 @@ export function FilterControls({ filters, onChange }: FilterControlsProps) {
       {/* Favorites toggle */}
       <Button
         variant={filters.favoriteOnly ? 'default' : 'outline'}
-        onClick={() => onChange({ favoriteOnly: !filters.favoriteOnly })}
+        onClick={handleFavoritesToggle}
       > 
         <HugeiconsIcon
           icon={StarIcon}

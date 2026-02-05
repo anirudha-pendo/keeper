@@ -45,4 +45,5 @@ export interface ServerActionResult<T = unknown> {
   success: boolean
   data?: T
   error?: string
+  trackingData?: any
 }
