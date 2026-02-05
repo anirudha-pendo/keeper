@@ -34,7 +34,7 @@ export function FilterControls({ filters, onChange }: FilterControlsProps) {
       <Button
         variant={filters.favoriteOnly ? 'default' : 'outline'}
         onClick={() => onChange({ favoriteOnly: !filters.favoriteOnly })}
-      >
+      > 
         <HugeiconsIcon
           icon={StarIcon}
           strokeWidth={2}
