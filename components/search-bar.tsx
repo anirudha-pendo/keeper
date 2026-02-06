@@ -13,6 +13,7 @@ interface SearchBarProps {
 
 export function SearchBar({ value, onChange, placeholder = 'Search bookmarks...' }: SearchBarProps) {
   const [inputValue, setInputValue] = useState(value)
+  const [previousValue, setPreviousValue] = useState(value)
 
   useEffect(() => {
     setInputValue(value)
@@ -20,20 +21,35 @@ export function SearchBar({ value, onChange, placeholder = 'Search bookmarks...'
 
   useEffect(() => {
     const timer = setTimeout(() => {
+      const trimmedInput = inputValue.trim()
+      const trimmedPrevious = previousValue.trim()
+
       onChange(inputValue)
 
       // Track search performed event (only if there's a query)
-      if (inputValue.trim().length > 0 && typeof window !== 'undefined' && (window as any).pendo) {
-        // Note: We can't determine results_count here since filtering happens in parent
-        // This will be tracked with available data
+      if (trimmedInput.length > 0 && typeof window !== 'undefined' && (window as any).pendo) {
         (window as any).pendo.track('search_performed', {
-          query_length: inputValue.trim().length
+          search_query: trimmedInput,
+          query_length: trimmedInput.length,
+          results_count: -1, // Would need parent context
+          total_bookmarks: -1, // Would need parent context
+          has_active_filters: false // Would need parent context
         })
       }
+
+      // Track search cleared event (when query goes from having content to empty)
+      if (trimmedPrevious.length > 0 && trimmedInput.length === 0 && typeof window !== 'undefined' && (window as any).pendo) {
+        (window as any).pendo.track('search_cleared', {
+          previous_query_length: trimmedPrevious.length,
+          time_searching_seconds: 0 // Would need to track search start time
+        })
+      }
+
+      setPreviousValue(inputValue)
     }, 300)
 
     return () => clearTimeout(timer)
-  }, [inputValue, onChange])
+  }, [inputValue, onChange, previousValue])
 
   return (
     <div className="relative">

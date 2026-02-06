@@ -41,6 +41,7 @@ export default function Page() {
   const loadBookmarks = async () => {
     if (!username) return
     setIsLoading(true)
+    const appLoadStartTime = Date.now()
     const result = await getBookmarks(username)
     if (result.success && result.data) {
       setBookmarks(result.data)
@@ -48,18 +49,29 @@ export default function Page() {
       // Track bookmarks loaded successfully
       if (typeof window !== 'undefined' && (window as any).pendo && result.trackingData) {
         (window as any).pendo.track('bookmarks_loaded', {
+          username: result.trackingData.username,
           bookmarks_count: result.trackingData.bookmarks_count,
-          load_time_ms: result.trackingData.load_time_ms,
-          username: result.trackingData.username
+          load_time_ms: result.trackingData.load_time_ms
+        })
+
+        // Track app loaded (session start)
+        const favoriteCount = result.data.filter((b: Bookmark) => b.isFavorite).length
+        (window as any).pendo.track('app_loaded', {
+          username: result.trackingData.username,
+          total_bookmarks: result.trackingData.bookmarks_count,
+          total_favorites: favoriteCount,
+          has_bookmarks: result.trackingData.bookmarks_count > 0,
+          load_time_ms: Date.now() - appLoadStartTime,
+          session_start_time: new Date().toISOString()
         })
       }
     } else {
       // Track bookmarks load error
       if (typeof window !== 'undefined' && (window as any).pendo && result.trackingData) {
         (window as any).pendo.track('bookmarks_load_error', {
+          username: result.trackingData.username,
           error_message: result.trackingData.error_message,
-          error_type: result.trackingData.error_type,
-          username: result.trackingData.username
+          error_type: result.trackingData.error_type
         })
       }
     }
@@ -79,9 +91,9 @@ export default function Page() {
     // Track bookmark form opened for editing
     if (typeof window !== 'undefined' && (window as any).pendo) {
       (window as any).pendo.track('bookmark_form_opened', {
-        form_mode: 'edit',
-        triggered_from: 'edit_menu',
-        total_bookmarks_count: bookmarks.length
+        mode: 'edit',
+        source: 'bookmark_card',
+        total_bookmarks: bookmarks.length
       })
     }
   }
@@ -93,9 +105,9 @@ export default function Page() {
     // Track bookmark form opened
     if (typeof window !== 'undefined' && (window as any).pendo) {
       (window as any).pendo.track('bookmark_form_opened', {
-        form_mode: 'create',
-        triggered_from: 'new_button',
-        total_bookmarks_count: bookmarks.length
+        mode: 'create',
+        source: 'new_button',
+        total_bookmarks: bookmarks.length
       })
     }
   }
@@ -122,11 +134,10 @@ export default function Page() {
     // Track no search results
     if (filteredBookmarks.length === 0 && (filters.query !== '' || filters.favoriteOnly) && !hasTrackedNoResults && bookmarks.length > 0) {
       if (typeof window !== 'undefined' && (window as any).pendo) {
-        (window as any).pendo.track('no_search_results', {
-          query: filters.query,
-          has_favorite_filter: filters.favoriteOnly,
-          sort_method: filters.sortBy,
-          total_bookmarks_count: bookmarks.length
+        (window as any).pendo.track('search_no_results', {
+          search_query: filters.query,
+          filters_active: filters.favoriteOnly ? 'favorites' : 'none',
+          total_bookmarks: bookmarks.length
         })
       }
       setHasTrackedNoResults(true)

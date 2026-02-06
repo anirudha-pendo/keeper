@@ -18,37 +18,44 @@ export function UsernamePrompt({ isOpen, onSubmit }: UsernamePromptProps) {
     const trimmed = username.trim()
 
     if (trimmed.length < 3 || trimmed.length > 20) {
-      setError('Username must be between 3 and 20 characters')
+      const errorMessage = 'Username must be between 3 and 20 characters'
+      setError(errorMessage)
       // Track username validation error
       if (typeof window !== 'undefined' && (window as any).pendo) {
         (window as any).pendo.track('username_validation_error', {
-          error_type: trimmed.length < 3 ? 'too_short' : 'too_long',
-          username_length: trimmed.length,
-          attempted_username_pattern: 'length_validation'
+          error_type: trimmed.length < 3 ? 'length_too_short' : 'length_too_long',
+          error_message: errorMessage,
+          attempted_username_length: trimmed.length
         })
       }
       return
     }
 
     if (!/^[a-zA-Z0-9_]+$/.test(trimmed)) {
-      setError('Username can only contain letters, numbers, and underscores')
+      const errorMessage = 'Username can only contain letters, numbers, and underscores'
+      setError(errorMessage)
       // Track username validation error
       if (typeof window !== 'undefined' && (window as any).pendo) {
         (window as any).pendo.track('username_validation_error', {
           error_type: 'invalid_characters',
-          username_length: trimmed.length,
-          attempted_username_pattern: 'contains_special_chars'
+          error_message: errorMessage,
+          attempted_username_length: trimmed.length
         })
       }
       return
     }
 
-    // Track successful username creation
+    // Track successful user account creation
     if (typeof window !== 'undefined' && (window as any).pendo) {
-      (window as any).pendo.track('username_created', {
+      const hasNumbers = /\d/.test(trimmed)
+      const hasUnderscores = /_/.test(trimmed)
+
+      (window as any).pendo.track('user_account_created', {
         username: trimmed,
+        timestamp: new Date().toISOString(),
         username_length: trimmed.length,
-        timestamp: new Date().toISOString()
+        contains_numbers: hasNumbers,
+        contains_underscores: hasUnderscores
       })
     }
 

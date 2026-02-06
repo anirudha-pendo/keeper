@@ -62,6 +62,11 @@ export function BookmarkForm({ isOpen, onClose, username, bookmark }: BookmarkFo
       setInitialFormData(defaultData)
     }
     setError('')
+
+    // Track form open time for calculating time spent
+    if (isOpen && typeof window !== 'undefined') {
+      (window as any).__bookmarkFormOpenTime = Date.now()
+    }
   }, [bookmark, isOpen])
 
   const handleSubmit = async () => {
@@ -69,14 +74,14 @@ export function BookmarkForm({ isOpen, onClose, username, bookmark }: BookmarkFo
 
     // Validate URL
     if (!formData.url.trim()) {
-      setError('URL is required')
+      const errorMessage = 'URL is required'
+      setError(errorMessage)
       // Track validation error
       if (typeof window !== 'undefined' && (window as any).pendo) {
-        (window as any).pendo.track('bookmark_validation_error', {
-          error_type: 'missing_required_field',
-          error_message: 'URL is required',
-          field_name: 'url',
-          form_mode: bookmark ? 'edit' : 'create'
+        (window as any).pendo.track('bookmark_form_validation_error', {
+          error_type: 'missing_url',
+          error_message: errorMessage,
+          mode: bookmark ? 'edit' : 'create'
         })
       }
       return
@@ -85,14 +90,14 @@ export function BookmarkForm({ isOpen, onClose, username, bookmark }: BookmarkFo
     try {
       new URL(formData.url)
     } catch {
-      setError('Invalid URL format')
+      const errorMessage = 'Invalid URL format'
+      setError(errorMessage)
       // Track validation error
       if (typeof window !== 'undefined' && (window as any).pendo) {
-        (window as any).pendo.track('bookmark_validation_error', {
-          error_type: 'invalid_url_format',
-          error_message: 'Invalid URL format',
-          field_name: 'url',
-          form_mode: bookmark ? 'edit' : 'create'
+        (window as any).pendo.track('bookmark_form_validation_error', {
+          error_type: 'invalid_url',
+          error_message: errorMessage,
+          mode: bookmark ? 'edit' : 'create'
         })
       }
       return
@@ -100,14 +105,14 @@ export function BookmarkForm({ isOpen, onClose, username, bookmark }: BookmarkFo
 
     // Validate title
     if (!formData.title.trim()) {
-      setError('Title is required')
+      const errorMessage = 'Title is required'
+      setError(errorMessage)
       // Track validation error
       if (typeof window !== 'undefined' && (window as any).pendo) {
-        (window as any).pendo.track('bookmark_validation_error', {
-          error_type: 'missing_required_field',
-          error_message: 'Title is required',
-          field_name: 'title',
-          form_mode: bookmark ? 'edit' : 'create'
+        (window as any).pendo.track('bookmark_form_validation_error', {
+          error_type: 'missing_title',
+          error_message: errorMessage,
+          mode: bookmark ? 'edit' : 'create'
         })
       }
       return
@@ -124,34 +129,96 @@ export function BookmarkForm({ isOpen, onClose, username, bookmark }: BookmarkFo
       }
 
       if (result.success) {
-        // Track successful bookmark creation/update
+        // Track successful bookmark creation/update and API events
         if (typeof window !== 'undefined' && (window as any).pendo && result.trackingData) {
           if (bookmark) {
-            (window as any).pendo.track('bookmark_updated', result.trackingData)
+            // Track bookmark updated
+            (window as any).pendo.track('bookmark_updated', {
+              username: result.trackingData.username,
+              bookmark_id: result.trackingData.bookmark_id,
+              fields_changed: result.trackingData.fields_changed,
+              has_description: result.trackingData.has_description,
+              tags_count: result.trackingData.tags_count,
+              is_favorite: result.trackingData.is_favorite,
+              priority: result.trackingData.priority,
+              time_since_creation: result.trackingData.time_since_creation
+            })
+
+            // Track API success
+            (window as any).pendo.track('api_bookmark_update_success', {
+              username: result.trackingData.api_username,
+              bookmark_id: result.trackingData.api_bookmark_id,
+              response_time_ms: result.trackingData.response_time_ms
+            })
           } else {
-            (window as any).pendo.track('bookmark_created', result.trackingData)
+            // Track bookmark created
+            (window as any).pendo.track('bookmark_created', {
+              username: result.trackingData.username,
+              bookmark_id: result.trackingData.bookmark_id,
+              has_description: result.trackingData.has_description,
+              tags_count: result.trackingData.tags_count,
+              is_favorite: result.trackingData.is_favorite,
+              priority: result.trackingData.priority,
+              url_domain: result.trackingData.url_domain,
+              creation_source: result.trackingData.creation_source
+            })
+
+            // Track API success
+            (window as any).pendo.track('api_bookmark_create_success', {
+              username: result.trackingData.api_username,
+              bookmark_id: result.trackingData.api_bookmark_id,
+              response_time_ms: result.trackingData.response_time_ms
+            })
+
+            // Track milestone: first bookmark
+            if (result.trackingData.is_first_bookmark) {
+              (window as any).pendo.track('milestone_first_bookmark', {
+                username: result.trackingData.username,
+                time_since_signup_minutes: 0, // Would need user creation date
+                bookmark_details: {
+                  has_description: result.trackingData.has_description,
+                  priority: result.trackingData.priority
+                }
+              })
+            }
+
+            // Track milestone: bookmark count
+            if (result.trackingData.milestone_reached) {
+              const favoritesCount = 0 // Would need to calculate from all bookmarks
+              (window as any).pendo.track('milestone_bookmarks_count', {
+                milestone: result.trackingData.milestone_count,
+                username: result.trackingData.username,
+                favorites_count: favoritesCount,
+                time_since_signup_days: 0 // Would need user creation date
+              })
+            }
           }
         }
         onClose()
       } else {
         setError(result.error || 'Failed to save bookmark')
-        // Track save error
-        if (typeof window !== 'undefined' && (window as any).pendo) {
-          (window as any).pendo.track('bookmark_save_error', {
-            error_message: result.error || 'Failed to save bookmark',
-            operation_type: bookmark ? 'update' : 'create',
-            bookmark_id: bookmark?.id
+        // Track API error
+        if (typeof window !== 'undefined' && (window as any).pendo && result.trackingData) {
+          const eventName = bookmark ? 'api_bookmark_update_error' : 'api_bookmark_create_error'
+          ;(window as any).pendo.track(eventName, {
+            username: result.trackingData.username,
+            bookmark_id: result.trackingData.bookmark_id,
+            error_type: result.trackingData.error_type,
+            error_message: result.trackingData.error_message,
+            url_attempted: result.trackingData.url_attempted
           })
         }
       }
     } catch (err: any) {
       setError(err.message || 'An error occurred')
-      // Track save error
+      // Track unexpected error
       if (typeof window !== 'undefined' && (window as any).pendo) {
-        (window as any).pendo.track('bookmark_save_error', {
-          error_message: err.message || 'An error occurred',
-          operation_type: bookmark ? 'update' : 'create',
-          bookmark_id: bookmark?.id
+        const eventName = bookmark ? 'api_bookmark_update_error' : 'api_bookmark_create_error'
+        ;(window as any).pendo.track(eventName, {
+          username: username,
+          bookmark_id: bookmark?.id,
+          error_type: 'unexpected_error',
+          error_message: err.message || 'An error occurred'
         })
       }
     } finally {
@@ -210,13 +277,12 @@ export function BookmarkForm({ isOpen, onClose, username, bookmark }: BookmarkFo
                   const previousPriority = formData.priority
                   const newPriority = parseInt(value) as 0 | 1 | 2 | 3 | 4 | 5
 
-                  // Track priority set
+                  // Track priority changed
                   if (typeof window !== 'undefined' && (window as any).pendo) {
-                    (window as any).pendo.track('priority_set', {
-                      bookmark_id: bookmark?.id,
-                      priority_level: newPriority,
+                    (window as any).pendo.track('bookmark_priority_changed', {
                       previous_priority: previousPriority,
-                      form_mode: bookmark ? 'edit' : 'create'
+                      new_priority: newPriority,
+                      mode: bookmark ? 'edit' : 'create'
                     })
                   }
 
@@ -260,22 +326,21 @@ export function BookmarkForm({ isOpen, onClose, username, bookmark }: BookmarkFo
 
         <AlertDialogFooter>
           <AlertDialogCancel disabled={isSubmitting} onClick={() => {
-            // Track form cancelled
-            const hasDataEntered = formData.url !== initialFormData.url ||
-                                   formData.title !== initialFormData.title ||
-                                   formData.description !== initialFormData.description
+            // Track form cancelled - calculate time spent
+            const formOpenTime = (window as any).__bookmarkFormOpenTime || Date.now()
+            const timeSpent = Math.floor((Date.now() - formOpenTime) / 1000)
 
             const fieldsFilled = [
-              formData.url ? 'url' : null,
-              formData.title ? 'title' : null,
-              formData.description ? 'description' : null
+              formData.url.trim() ? 'url' : null,
+              formData.title.trim() ? 'title' : null,
+              formData.description.trim() ? 'description' : null
             ].filter(Boolean)
 
             if (typeof window !== 'undefined' && (window as any).pendo) {
               (window as any).pendo.track('bookmark_form_cancelled', {
-                form_mode: bookmark ? 'edit' : 'create',
-                had_data_entered: hasDataEntered,
-                fields_filled: fieldsFilled
+                mode: bookmark ? 'edit' : 'create',
+                form_filled_fields: fieldsFilled.join(','),
+                time_spent_seconds: timeSpent
               })
             }
           }}>Cancel</AlertDialogCancel>

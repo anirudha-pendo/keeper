@@ -38,9 +38,12 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
     const bookmarkAgeDays = Math.floor(bookmarkAgeMs / (1000 * 60 * 60 * 24))
 
     if (typeof window !== 'undefined' && (window as any).pendo) {
+      const urlObj = new URL(bookmark.url)
       (window as any).pendo.track('bookmark_opened', {
+        username: username,
         bookmark_id: bookmark.id,
-        open_method: method,
+        click_source: method,
+        url_domain: urlObj.hostname,
         is_favorite: bookmark.isFavorite,
         priority: bookmark.priority,
         bookmark_age_days: bookmarkAgeDays
@@ -60,16 +63,46 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
     const result = await toggleFavorite(username, bookmark.id, bookmark.isFavorite)
     if (!result.success) {
       setIsFavorite(!newState)
+      // Track API error
+      if (typeof window !== 'undefined' && (window as any).pendo && result.trackingData) {
+        (window as any).pendo.track('api_toggle_favorite_error', {
+          username: result.trackingData.username,
+          bookmark_id: result.trackingData.bookmark_id,
+          error_message: result.trackingData.error_message
+        })
+      }
     } else {
       // Track favorite toggle event
       if (typeof window !== 'undefined' && (window as any).pendo) {
-        const eventName = newState ? 'bookmark_favorited' : 'bookmark_unfavorited'
-        ;(window as any).pendo.track(eventName, {
-          bookmark_id: bookmark.id,
-          previous_state: previousState,
-          priority: bookmark.priority,
-          bookmark_age_days: bookmarkAgeDays
-        })
+        if (newState) {
+          // Bookmark favorited
+          (window as any).pendo.track('bookmark_favorited', {
+            username: username,
+            bookmark_id: bookmark.id,
+            bookmark_age_days: bookmarkAgeDays,
+            priority: bookmark.priority,
+            tags_count: bookmark.tags.length,
+            total_favorites: -1 // This would need to be calculated from parent
+          })
+        } else {
+          // Bookmark unfavorited
+          (window as any).pendo.track('bookmark_unfavorited', {
+            username: username,
+            bookmark_id: bookmark.id,
+            bookmark_age_days: bookmarkAgeDays,
+            time_favorited_days: 0 // This would need historical tracking
+          })
+        }
+
+        // Track API success
+        if (result.trackingData) {
+          (window as any).pendo.track('api_toggle_favorite_success', {
+            username: result.trackingData.username,
+            bookmark_id: result.trackingData.bookmark_id,
+            new_state: result.trackingData.new_state,
+            response_time_ms: result.trackingData.response_time_ms
+          })
+        }
       }
     }
   }
@@ -83,14 +116,35 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
       // Track bookmark deletion
       if (typeof window !== 'undefined' && (window as any).pendo) {
         (window as any).pendo.track('bookmark_deleted', {
+          username: username,
           bookmark_id: bookmark.id,
           bookmark_age_days: bookmarkAgeDays,
           was_favorite: bookmark.isFavorite,
-          priority: bookmark.priority
+          priority: bookmark.priority,
+          tags_count: bookmark.tags.length,
+          deletion_source: 'bookmark_card'
         })
+
+        // Track API success
+        if (result.trackingData) {
+          (window as any).pendo.track('api_bookmark_delete_success', {
+            username: result.trackingData.username,
+            bookmark_id: result.trackingData.bookmark_id,
+            response_time_ms: result.trackingData.response_time_ms
+          })
+        }
       }
       setShowDeleteDialog(false)
       onDelete?.()
+    } else {
+      // Track API error
+      if (typeof window !== 'undefined' && (window as any).pendo && result.trackingData) {
+        (window as any).pendo.track('api_bookmark_delete_error', {
+          username: result.trackingData.username,
+          bookmark_id: result.trackingData.bookmark_id,
+          error_message: result.trackingData.error_message
+        })
+      }
     }
   }
 
@@ -161,7 +215,18 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
                     src={bookmark.favicon}
                     alt=""
                     className="w-full h-full object-contain"
-                    onError={() => setFaviconError(true)}
+                    onError={() => {
+                      setFaviconError(true)
+                      // Track favicon load error
+                      if (typeof window !== 'undefined' && (window as any).pendo) {
+                        const urlObj = new URL(bookmark.url)
+                        (window as any).pendo.track('favicon_load_error', {
+                          bookmark_id: bookmark.id,
+                          url_domain: urlObj.hostname,
+                          favicon_url: bookmark.favicon
+                        })
+                      }
+                    }}
                   />
                 ) : (
                   <div className="w-full h-full rounded bg-muted flex items-center justify-center">
@@ -209,7 +274,14 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
                 />
               </Button>
 
-              <DropdownMenu>
+              <DropdownMenu onOpenChange={(open) => {
+                if (open && typeof window !== 'undefined' && (window as any).pendo) {
+                  (window as any).pendo.track('bookmark_menu_opened', {
+                    bookmark_id: bookmark.id,
+                    is_favorite: bookmark.isFavorite
+                  })
+                }
+              }}>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="h-7 w-7 p-0 opacity-60 hover:opacity-100">
                     <HugeiconsIcon icon={MoreVerticalIcon} strokeWidth={2} />
@@ -230,11 +302,11 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => {
                     setShowDeleteDialog(true)
-                    // Track delete confirmation shown
+                    // Track delete dialog opened
                     const bookmarkAgeMs = Date.now() - new Date(bookmark.createdAt).getTime()
                     const bookmarkAgeDays = Math.floor(bookmarkAgeMs / (1000 * 60 * 60 * 24))
                     if (typeof window !== 'undefined' && (window as any).pendo) {
-                      (window as any).pendo.track('delete_confirmation_shown', {
+                      (window as any).pendo.track('bookmark_delete_dialog_opened', {
                         bookmark_id: bookmark.id,
                         is_favorite: bookmark.isFavorite,
                         priority: bookmark.priority,
@@ -288,10 +360,11 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => {
-              // Track delete confirmation cancelled
+              // Track delete cancelled
               if (typeof window !== 'undefined' && (window as any).pendo) {
-                (window as any).pendo.track('delete_confirmation_cancelled', {
-                  bookmark_id: bookmark.id
+                (window as any).pendo.track('bookmark_delete_cancelled', {
+                  bookmark_id: bookmark.id,
+                  is_favorite: bookmark.isFavorite
                 })
               }
             }}>Cancel</AlertDialogCancel>

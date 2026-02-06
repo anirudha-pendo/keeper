@@ -16,11 +16,14 @@ export function FilterControls({ filters, onChange }: FilterControlsProps) {
     const previousSortMethod = filters.sortBy
     const newSortMethod = value as FilterOptions['sortBy']
 
-    // Track sort method changed
+    // Track sort changed
     if (typeof window !== 'undefined' && (window as any).pendo) {
-      (window as any).pendo.track('sort_method_changed', {
-        sort_method: newSortMethod,
-        previous_sort_method: previousSortMethod
+      (window as any).pendo.track('filter_sort_changed', {
+        sort_type: newSortMethod,
+        previous_sort_type: previousSortMethod,
+        total_bookmarks: -1, // Would need parent context
+        has_search_query: filters.query.length > 0,
+        favorites_only_active: filters.favoriteOnly
       })
     }
 
@@ -32,8 +35,12 @@ export function FilterControls({ filters, onChange }: FilterControlsProps) {
 
     // Track favorites filter toggled
     if (typeof window !== 'undefined' && (window as any).pendo) {
-      (window as any).pendo.track('filter_favorites_toggled', {
-        filter_enabled: newState
+      (window as any).pendo.track('favorites_filter_toggled', {
+        filter_state: newState ? 'enabled' : 'disabled',
+        total_favorites: -1, // Would need parent context
+        total_bookmarks: -1, // Would need parent context
+        has_search_query: filters.query.length > 0,
+        current_sort: filters.sortBy
       })
     }
 
