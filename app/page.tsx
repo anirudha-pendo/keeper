@@ -14,6 +14,7 @@ import { HugeiconsIcon } from '@hugeicons/react'
 import { Add01Icon } from '@hugeicons/core-free-icons'
 import { getBookmarks } from '@/app/actions/bookmarks'
 import type { Bookmark, FilterOptions } from '@/lib/types'
+import { PendoInit } from '@/components/pendo-init'
 
 export default function Page() {
   const { username, setUsername, isLoading: isUsernameLoading } = useUsername()
@@ -79,8 +80,10 @@ export default function Page() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-6 max-w-7xl">
+    <>
+      <PendoInit username={username} />
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-6 max-w-7xl">
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
@@ -147,5 +150,6 @@ export default function Page() {
         />
       </div>
     </div>
+    </>
   )
 }
