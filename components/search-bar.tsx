@@ -9,10 +9,13 @@ interface SearchBarProps {
   value: string
   onChange: (value: string) => void
   placeholder?: string
+  resultsCount?: number
+  totalBookmarks?: number
 }
 
-export function SearchBar({ value, onChange, placeholder = 'Search bookmarks...' }: SearchBarProps) {
+export function SearchBar({ value, onChange, placeholder = 'Search bookmarks...', resultsCount = 0, totalBookmarks = 0 }: SearchBarProps) {
   const [inputValue, setInputValue] = useState(value)
+  const [previousValue, setPreviousValue] = useState(value)
 
   useEffect(() => {
     setInputValue(value)
@@ -21,10 +24,31 @@ export function SearchBar({ value, onChange, placeholder = 'Search bookmarks...'
   useEffect(() => {
     const timer = setTimeout(() => {
       onChange(inputValue)
+
+      // Track search_performed (Event 14) and search_cleared (Event 15)
+      if (typeof window !== 'undefined' && (window as any).pendo) {
+        if (inputValue.trim() !== '' && previousValue !== inputValue) {
+          // Track search_performed when user types a query
+          ;(window as any).pendo.track('search_performed', {
+            query_length: inputValue.trim().length,
+            results_count: resultsCount,
+            has_results: resultsCount > 0,
+            total_bookmarks: totalBookmarks
+          })
+        } else if (inputValue.trim() === '' && previousValue.trim() !== '') {
+          // Track search_cleared when user clears search
+          ;(window as any).pendo.track('search_cleared', {
+            previous_query_length: previousValue.length,
+            had_results: resultsCount > 0
+          })
+        }
+      }
+
+      setPreviousValue(inputValue)
     }, 300)
 
     return () => clearTimeout(timer)
-  }, [inputValue, onChange])
+  }, [inputValue, onChange, previousValue])
 
   return (
     <div className="relative">

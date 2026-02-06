@@ -19,12 +19,37 @@ export function UsernamePrompt({ isOpen, onSubmit }: UsernamePromptProps) {
 
     if (trimmed.length < 3 || trimmed.length > 20) {
       setError('Username must be between 3 and 20 characters')
+      // Track username validation error
+      if (typeof window !== 'undefined' && (window as any).pendo) {
+        (window as any).pendo.track('username_validation_error', {
+          error_type: 'length',
+          attempted_username_length: trimmed.length,
+          invalid_characters_used: false
+        })
+      }
       return
     }
 
     if (!/^[a-zA-Z0-9_]+$/.test(trimmed)) {
       setError('Username can only contain letters, numbers, and underscores')
+      // Track username validation error
+      if (typeof window !== 'undefined' && (window as any).pendo) {
+        (window as any).pendo.track('username_validation_error', {
+          error_type: 'invalid_characters',
+          attempted_username_length: trimmed.length,
+          invalid_characters_used: true
+        })
+      }
       return
+    }
+
+    // Track successful user registration
+    if (typeof window !== 'undefined' && (window as any).pendo) {
+      (window as any).pendo.track('user_registered', {
+        username: trimmed,
+        username_length: trimmed.length,
+        registration_timestamp: new Date().toISOString()
+      })
     }
 
     onSubmit(trimmed)
