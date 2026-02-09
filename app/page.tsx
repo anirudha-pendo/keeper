@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useUsername } from '@/hooks/use-username'
 import { useSearch } from '@/hooks/use-search'
 import { UsernamePrompt } from '@/components/username-prompt'
@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Add01Icon } from '@hugeicons/core-free-icons'
-import { getBookmarks } from '@/app/actions/bookmarks'
+import { getBookmarks, getUserCreatedAtAction } from '@/app/actions/bookmarks'
 import type { Bookmark, FilterOptions } from '@/lib/types'
 
 export default function Page() {
@@ -21,6 +21,8 @@ export default function Page() {
   const [isLoading, setIsLoading] = useState(true)
   const [showBookmarkForm, setShowBookmarkForm] = useState(false)
   const [editingBookmark, setEditingBookmark] = useState<Bookmark | undefined>()
+  const pendoInitialized = useRef(false)
+  const pendoIdentified = useRef<string | null>(null)
 
   const [filters, setFilters] = useState<FilterOptions>({
     query: '',
@@ -29,6 +31,44 @@ export default function Page() {
   })
 
   const filteredBookmarks = useSearch(bookmarks, filters)
+
+  // Initialize Pendo with anonymous visitor on first load
+  useEffect(() => {
+    if (!pendoInitialized.current && typeof pendo !== 'undefined') {
+      pendo.initialize({
+        visitor: {
+          id: 'ANONYMOUS_VISITOR_ID',
+        },
+      })
+      pendoInitialized.current = true
+    }
+  }, [])
+
+  // Identify visitor with actual data once username and bookmarks are available
+  useEffect(() => {
+    if (
+      username &&
+      !isLoading &&
+      typeof pendo !== 'undefined' &&
+      pendoIdentified.current !== username
+    ) {
+      const identifyVisitor = async () => {
+        const createdAtResult = await getUserCreatedAtAction(username)
+        const createdAt = createdAtResult.success ? createdAtResult.data : null
+
+        pendo.identify({
+          visitor: {
+            id: username,
+            username: username,
+            createdAt: createdAt ?? undefined,
+            bookmarkCount: bookmarks.length,
+          },
+        })
+        pendoIdentified.current = username
+      }
+      identifyVisitor()
+    }
+  }, [username, isLoading, bookmarks.length])
 
   useEffect(() => {
     if (username) {
