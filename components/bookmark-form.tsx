@@ -51,25 +51,52 @@ export function BookmarkForm({ isOpen, onClose, username, bookmark }: BookmarkFo
     setError('')
   }, [bookmark, isOpen])
 
+  const getUrlDomain = (url: string): string => {
+    try {
+      return new URL(url).hostname
+    } catch {
+      return 'unknown'
+    }
+  }
+
   const handleSubmit = async () => {
     setError('')
+    const formMode = bookmark ? 'edit' : 'create'
 
     // Validate URL
     if (!formData.url.trim()) {
-      setError('URL is required')
+      const errorMsg = 'URL is required'
+      setError(errorMsg)
+      pendo.track('bookmark_form_validation_failed', {
+        form_mode: formMode,
+        error_type: 'missing_url',
+        error_message: errorMsg,
+      })
       return
     }
 
     try {
       new URL(formData.url)
     } catch {
-      setError('Invalid URL format')
+      const errorMsg = 'Invalid URL format'
+      setError(errorMsg)
+      pendo.track('bookmark_form_validation_failed', {
+        form_mode: formMode,
+        error_type: 'invalid_url',
+        error_message: errorMsg,
+      })
       return
     }
 
     // Validate title
     if (!formData.title.trim()) {
-      setError('Title is required')
+      const errorMsg = 'Title is required'
+      setError(errorMsg)
+      pendo.track('bookmark_form_validation_failed', {
+        form_mode: formMode,
+        error_type: 'missing_title',
+        error_message: errorMsg,
+      })
       return
     }
 
@@ -84,12 +111,51 @@ export function BookmarkForm({ isOpen, onClose, username, bookmark }: BookmarkFo
       }
 
       if (result.success) {
+        if (bookmark) {
+          const fieldsChanged: string[] = []
+          if (formData.url !== bookmark.url) fieldsChanged.push('url')
+          if (formData.title !== bookmark.title) fieldsChanged.push('title')
+          if (formData.description !== (bookmark.description || '')) fieldsChanged.push('description')
+          if (formData.isFavorite !== bookmark.isFavorite) fieldsChanged.push('isFavorite')
+          if (formData.priority !== bookmark.priority) fieldsChanged.push('priority')
+
+          pendo.track('bookmark_updated', {
+            bookmark_id: bookmark.id,
+            has_description: Boolean(formData.description?.trim()),
+            tag_count: formData.tags.length,
+            priority_level: formData.priority,
+            is_favorite: formData.isFavorite,
+            url_domain: getUrlDomain(formData.url),
+            fields_changed: fieldsChanged.join(','),
+          })
+        } else {
+          pendo.track('bookmark_created', {
+            has_description: Boolean(formData.description?.trim()),
+            tag_count: formData.tags.length,
+            priority_level: formData.priority,
+            is_favorite: formData.isFavorite,
+            url_domain: getUrlDomain(formData.url),
+          })
+        }
+
         onClose()
       } else {
-        setError(result.error || 'Failed to save bookmark')
+        const errorMsg = result.error || 'Failed to save bookmark'
+        setError(errorMsg)
+        pendo.track('bookmark_save_failed', {
+          form_mode: formMode,
+          error_message: errorMsg,
+          bookmark_id: bookmark?.id || '',
+        })
       }
     } catch (err: any) {
-      setError(err.message || 'An error occurred')
+      const errorMsg = err.message || 'An error occurred'
+      setError(errorMsg)
+      pendo.track('bookmark_save_failed', {
+        form_mode: formMode,
+        error_message: errorMsg,
+        bookmark_id: bookmark?.id || '',
+      })
     } finally {
       setIsSubmitting(false)
     }
@@ -180,7 +246,26 @@ export function BookmarkForm({ isOpen, onClose, username, bookmark }: BookmarkFo
         </div>
 
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={isSubmitting}>Cancel</AlertDialogCancel>
+          <AlertDialogCancel
+            disabled={isSubmitting}
+            onClick={() => {
+              const hasChanges = bookmark
+                ? formData.url !== bookmark.url ||
+                  formData.title !== bookmark.title ||
+                  formData.description !== (bookmark.description || '') ||
+                  formData.isFavorite !== bookmark.isFavorite ||
+                  formData.priority !== bookmark.priority
+                : formData.url.trim() !== '' ||
+                  formData.title.trim() !== '' ||
+                  (formData.description?.trim() || '') !== '' ||
+                  formData.isFavorite !== false ||
+                  formData.priority !== 0
+              pendo.track('bookmark_form_cancelled', {
+                form_mode: bookmark ? 'edit' : 'create',
+                had_unsaved_changes: hasChanges,
+              })
+            }}
+          >Cancel</AlertDialogCancel>
           <AlertDialogAction onClick={handleSubmit} disabled={isSubmitting}>
             {isSubmitting ? 'Saving...' : bookmark ? 'Update' : 'Create'}
           </AlertDialogAction>

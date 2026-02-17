@@ -55,11 +55,19 @@ export default function Page() {
   const handleEdit = (bookmark: Bookmark) => {
     setEditingBookmark(bookmark)
     setShowBookmarkForm(true)
+    pendo.track('bookmark_form_opened', {
+      form_mode: 'edit',
+      bookmark_id: bookmark.id,
+    })
   }
 
   const handleAddNew = () => {
     setEditingBookmark(undefined)
     setShowBookmarkForm(true)
+    pendo.track('bookmark_form_opened', {
+      form_mode: 'create',
+      bookmark_id: '',
+    })
   }
 
   const updateFilters = (updates: Partial<FilterOptions>) => {

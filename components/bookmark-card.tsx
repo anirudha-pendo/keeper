@@ -33,18 +33,45 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [faviconError, setFaviconError] = useState(false)
 
+  const getBookmarkAgeDays = () => {
+    const created = new Date(bookmark.createdAt)
+    const now = new Date()
+    return Math.floor((now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24))
+  }
+
+  const getUrlDomain = () => {
+    try {
+      return new URL(bookmark.url).hostname
+    } catch {
+      return 'unknown'
+    }
+  }
+
   const handleToggleFavorite = async () => {
     const newState = !isFavorite
     setIsFavorite(newState)
     const result = await toggleFavorite(username, bookmark.id, bookmark.isFavorite)
     if (!result.success) {
       setIsFavorite(!newState)
+    } else {
+      pendo.track('bookmark_favorite_toggled', {
+        bookmark_id: bookmark.id,
+        new_favorite_state: newState,
+        bookmark_age_days: getBookmarkAgeDays(),
+        priority_level: bookmark.priority,
+      })
     }
   }
 
   const handleDelete = async () => {
     const result = await deleteBookmark(username, bookmark.id)
     if (result.success) {
+      pendo.track('bookmark_deleted', {
+        bookmark_id: bookmark.id,
+        bookmark_age_days: getBookmarkAgeDays(),
+        was_favorite: isFavorite,
+        priority_level: bookmark.priority,
+      })
       setShowDeleteDialog(false)
       onDelete?.()
     }
@@ -134,6 +161,15 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
                     target="_blank"
                     rel="noopener noreferrer"
                     className="hover:text-primary transition-colors"
+                    onClick={() => {
+                      pendo.track('bookmark_link_clicked', {
+                        bookmark_id: bookmark.id,
+                        url_domain: getUrlDomain(),
+                        click_target: 'title',
+                        is_favorite: isFavorite,
+                        priority_level: bookmark.priority,
+                      })
+                    }}
                   >
                     {bookmark.title}
                   </a>
@@ -143,6 +179,15 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-[10px] text-muted-foreground hover:text-foreground transition-colors truncate block"
+                  onClick={() => {
+                    pendo.track('bookmark_link_clicked', {
+                      bookmark_id: bookmark.id,
+                      url_domain: getUrlDomain(),
+                      click_target: 'hostname',
+                      is_favorite: isFavorite,
+                      priority_level: bookmark.priority,
+                    })
+                  }}
                 >
                   {new URL(bookmark.url).hostname}
                 </a>
@@ -171,7 +216,16 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => window.open(bookmark.url, '_blank')}>
+                  <DropdownMenuItem onClick={() => {
+                    pendo.track('bookmark_opened_externally', {
+                      bookmark_id: bookmark.id,
+                      url_domain: getUrlDomain(),
+                      bookmark_age_days: getBookmarkAgeDays(),
+                      priority_level: bookmark.priority,
+                      is_favorite: isFavorite,
+                    })
+                    window.open(bookmark.url, '_blank')
+                  }}>
                     <HugeiconsIcon icon={ExternalLink} strokeWidth={2} className="mr-2 h-4 w-4" />
                     Open
                   </DropdownMenuItem>
@@ -180,7 +234,14 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
                     Edit
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => setShowDeleteDialog(true)} className="text-destructive">
+                  <DropdownMenuItem onClick={() => {
+                    pendo.track('delete_confirmation_shown', {
+                      bookmark_id: bookmark.id,
+                      bookmark_age_days: getBookmarkAgeDays(),
+                      is_favorite: isFavorite,
+                    })
+                    setShowDeleteDialog(true)
+                  }} className="text-destructive">
                     <HugeiconsIcon icon={DeleteIcon} strokeWidth={2} className="mr-2 h-4 w-4" />
                     Delete
                   </DropdownMenuItem>
@@ -226,7 +287,11 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => {
+              pendo.track('delete_confirmation_cancelled', {
+                bookmark_id: bookmark.id,
+              })
+            }}>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Delete
             </AlertDialogAction>
