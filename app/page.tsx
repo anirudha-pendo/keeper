@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useUsername } from '@/hooks/use-username'
 import { useSearch } from '@/hooks/use-search'
+import { usePendo } from '@/hooks/use-pendo'
 import { UsernamePrompt } from '@/components/username-prompt'
 import { BookmarkGrid } from '@/components/bookmark-grid'
 import { BookmarkForm } from '@/components/bookmark-form'
@@ -29,6 +30,8 @@ export default function Page() {
   })
 
   const filteredBookmarks = useSearch(bookmarks, filters)
+
+  usePendo({ username, bookmarks, sortBy: filters.sortBy })
 
   useEffect(() => {
     if (username) {
