@@ -20,6 +20,11 @@ export function SearchBar({ value, onChange, placeholder = 'Search bookmarks...'
 
   useEffect(() => {
     const timer = setTimeout(() => {
+      if (inputValue.trim()) {
+        pendo.track('bookmarks_searched', {
+          query_length: inputValue.trim().length,
+        })
+      }
       onChange(inputValue)
     }, 300)
 
