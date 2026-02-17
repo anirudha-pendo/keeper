@@ -54,12 +54,6 @@ async function writeBookmarksFile(data: BookmarksData): Promise<void> {
   await fs.rename(tempPath, DB_PATH) // Atomic operation
 }
 
-export async function getUserCreatedAt(username: string): Promise<string | null> {
-  const data = await readBookmarksFile()
-  const user = data.users[username]
-  return user?.createdAt ?? null
-}
-
 export async function getUserBookmarks(username: string): Promise<Bookmark[]> {
   const data = await readBookmarksFile()
   const user = data.users[username]
