@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useUsername } from '@/hooks/use-username'
 import { useSearch } from '@/hooks/use-search'
 import { UsernamePrompt } from '@/components/username-prompt'
@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Add01Icon } from '@hugeicons/core-free-icons'
-import { getBookmarks } from '@/app/actions/bookmarks'
+import { getBookmarks, getVisitorMetadata } from '@/app/actions/bookmarks'
 import type { Bookmark, FilterOptions } from '@/lib/types'
 
 export default function Page() {
@@ -21,6 +21,7 @@ export default function Page() {
   const [isLoading, setIsLoading] = useState(true)
   const [showBookmarkForm, setShowBookmarkForm] = useState(false)
   const [editingBookmark, setEditingBookmark] = useState<Bookmark | undefined>()
+  const pendoInitialized = useRef(false)
 
   const [filters, setFilters] = useState<FilterOptions>({
     query: '',
@@ -29,6 +30,36 @@ export default function Page() {
   })
 
   const filteredBookmarks = useSearch(bookmarks, filters)
+
+  const identifyPendoVisitor = useCallback(async (visitorUsername: string, visitorBookmarks: Bookmark[]) => {
+    if (typeof window === 'undefined' || !window.pendo) return
+
+    const metadataResult = await getVisitorMetadata(visitorUsername)
+    const metadata = metadataResult.success ? metadataResult.data : null
+
+    const visitorData: Record<string, unknown> = {
+      id: visitorUsername,
+      username: visitorUsername,
+      bookmarkCount: metadata?.bookmarkCount ?? visitorBookmarks.length,
+      favoriteCount: metadata?.favoriteCount ?? 0,
+      uniqueTagCount: metadata?.uniqueTagCount ?? 0,
+      tags: metadata?.tags ?? [],
+      hasBookmarks: metadata?.hasBookmarks ?? visitorBookmarks.length > 0,
+      preferredSortBy: filters.sortBy,
+      favoriteFilterActive: filters.favoriteOnly,
+    }
+
+    if (metadata?.createdAt) {
+      visitorData.createdAt = metadata.createdAt
+    }
+
+    if (!pendoInitialized.current) {
+      window.pendo.initialize({ visitor: visitorData })
+      pendoInitialized.current = true
+    } else {
+      window.pendo.identify({ visitor: visitorData })
+    }
+  }, [filters.sortBy, filters.favoriteOnly])
 
   useEffect(() => {
     if (username) {
@@ -42,6 +73,7 @@ export default function Page() {
     const result = await getBookmarks(username)
     if (result.success && result.data) {
       setBookmarks(result.data)
+      identifyPendoVisitor(username, result.data)
     }
     setIsLoading(false)
   }
