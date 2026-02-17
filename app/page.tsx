@@ -58,6 +58,10 @@ export default function Page() {
   }
 
   const handleAddNew = () => {
+    pendo.track('add_bookmark_clicked', {
+      current_bookmark_count: bookmarks.length,
+      current_filter_active: filters.favoriteOnly || filters.query !== '',
+    })
     setEditingBookmark(undefined)
     setShowBookmarkForm(true)
   }
