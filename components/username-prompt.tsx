@@ -18,32 +18,14 @@ export function UsernamePrompt({ isOpen, onSubmit }: UsernamePromptProps) {
     const trimmed = username.trim()
 
     if (trimmed.length < 3 || trimmed.length > 20) {
-      const errorMsg = 'Username must be between 3 and 20 characters'
-      setError(errorMsg)
-      pendo.track('username_validation_error', {
-        error_type: 'invalid_length',
-        attempted_username_length: trimmed.length,
-        error_message: errorMsg,
-      })
+      setError('Username must be between 3 and 20 characters')
       return
     }
 
     if (!/^[a-zA-Z0-9_]+$/.test(trimmed)) {
-      const errorMsg = 'Username can only contain letters, numbers, and underscores'
-      setError(errorMsg)
-      pendo.track('username_validation_error', {
-        error_type: 'invalid_characters',
-        attempted_username_length: trimmed.length,
-        error_message: errorMsg,
-      })
+      setError('Username can only contain letters, numbers, and underscores')
       return
     }
-
-    pendo.track('username_created', {
-      username_length: trimmed.length,
-      has_underscores: trimmed.includes('_'),
-      has_numbers: /\d/.test(trimmed),
-    })
 
     onSubmit(trimmed)
   }
