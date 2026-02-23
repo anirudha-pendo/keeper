@@ -33,9 +33,22 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [faviconError, setFaviconError] = useState(false)
 
+  const getBookmarkAgeDays = () => {
+    return Math.floor((Date.now() - new Date(bookmark.createdAt).getTime()) / (1000 * 60 * 60 * 24))
+  }
+
+  const getUrlDomain = () => {
+    try { return new URL(bookmark.url).hostname } catch { return '' }
+  }
+
   const handleToggleFavorite = async () => {
     const newState = !isFavorite
     setIsFavorite(newState)
+    pendo?.track('bookmark_favorite_toggled', {
+      bookmark_id: bookmark.id,
+      new_state: newState,
+      url_domain: getUrlDomain(),
+    })
     const result = await toggleFavorite(username, bookmark.id, bookmark.isFavorite)
     if (!result.success) {
       setIsFavorite(!newState)
@@ -45,6 +58,13 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
   const handleDelete = async () => {
     const result = await deleteBookmark(username, bookmark.id)
     if (result.success) {
+      pendo?.track('bookmark_deleted', {
+        bookmark_id: bookmark.id,
+        bookmark_age_days: getBookmarkAgeDays(),
+        had_tags: bookmark.tags.length > 0,
+        was_favorite: bookmark.isFavorite,
+        priority: bookmark.priority,
+      })
       setShowDeleteDialog(false)
       onDelete?.()
     }
@@ -171,16 +191,35 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => window.open(bookmark.url, '_blank')}>
+                  <DropdownMenuItem onClick={() => {
+                    pendo?.track('bookmark_opened', {
+                      bookmark_id: bookmark.id,
+                      url_domain: getUrlDomain(),
+                      open_method: 'dropdown_menu',
+                      bookmark_age_days: getBookmarkAgeDays(),
+                    })
+                    window.open(bookmark.url, '_blank')
+                  }}>
                     <HugeiconsIcon icon={ExternalLink} strokeWidth={2} className="mr-2 h-4 w-4" />
                     Open
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onEdit(bookmark)}>
+                  <DropdownMenuItem onClick={() => {
+                    pendo?.track('bookmark_edit_initiated', {
+                      bookmark_id: bookmark.id,
+                      bookmark_age_days: getBookmarkAgeDays(),
+                    })
+                    onEdit(bookmark)
+                  }}>
                     <HugeiconsIcon icon={EditIcon} strokeWidth={2} className="mr-2 h-4 w-4" />
                     Edit
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => setShowDeleteDialog(true)} className="text-destructive">
+                  <DropdownMenuItem onClick={() => {
+                    pendo?.track('bookmark_delete_initiated', {
+                      bookmark_id: bookmark.id,
+                    })
+                    setShowDeleteDialog(true)
+                  }} className="text-destructive">
                     <HugeiconsIcon icon={DeleteIcon} strokeWidth={2} className="mr-2 h-4 w-4" />
                     Delete
                   </DropdownMenuItem>

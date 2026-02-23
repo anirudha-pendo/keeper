@@ -55,8 +55,13 @@ export function BookmarkForm({ isOpen, onClose, username, bookmark }: BookmarkFo
     setError('')
 
     // Validate URL
+    const operation = bookmark ? 'update' : 'create'
     if (!formData.url.trim()) {
       setError('URL is required')
+      pendo?.track('bookmark_form_validation_failed', {
+        error_type: 'missing_url',
+        operation,
+      })
       return
     }
 
@@ -64,12 +69,20 @@ export function BookmarkForm({ isOpen, onClose, username, bookmark }: BookmarkFo
       new URL(formData.url)
     } catch {
       setError('Invalid URL format')
+      pendo?.track('bookmark_form_validation_failed', {
+        error_type: 'invalid_url',
+        operation,
+      })
       return
     }
 
     // Validate title
     if (!formData.title.trim()) {
       setError('Title is required')
+      pendo?.track('bookmark_form_validation_failed', {
+        error_type: 'missing_title',
+        operation,
+      })
       return
     }
 
@@ -84,11 +97,39 @@ export function BookmarkForm({ isOpen, onClose, username, bookmark }: BookmarkFo
       }
 
       if (result.success) {
+        let urlDomain = ''
+        try { urlDomain = new URL(formData.url).hostname } catch {}
+        if (bookmark) {
+          pendo?.track('bookmark_updated', {
+            bookmark_id: bookmark.id,
+            priority: formData.priority,
+            is_favorite: formData.isFavorite,
+            tag_count: formData.tags.length,
+          })
+        } else {
+          const createdId = (result as any).data?.id || ''
+          pendo?.track('bookmark_created', {
+            bookmark_id: createdId,
+            has_description: !!formData.description?.trim(),
+            priority: formData.priority,
+            is_favorite: formData.isFavorite,
+            tag_count: formData.tags.length,
+            url_domain: urlDomain,
+          })
+        }
         onClose()
       } else {
+        pendo?.track('bookmark_save_failed', {
+          operation,
+          error_message: (result.error || 'Failed to save bookmark').substring(0, 100),
+        })
         setError(result.error || 'Failed to save bookmark')
       }
     } catch (err: any) {
+      pendo?.track('bookmark_save_failed', {
+        operation,
+        error_message: (err.message || 'An error occurred').substring(0, 100),
+      })
       setError(err.message || 'An error occurred')
     } finally {
       setIsSubmitting(false)

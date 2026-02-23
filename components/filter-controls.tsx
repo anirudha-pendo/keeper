@@ -17,7 +17,13 @@ export function FilterControls({ filters, onChange }: FilterControlsProps) {
       {/* Sort */}
       <Select
         value={filters.sortBy}
-        onValueChange={(value) => onChange({ sortBy: value as FilterOptions['sortBy'] })}
+        onValueChange={(value) => {
+          pendo?.track('bookmarks_sorted', {
+            sort_by: value,
+            previous_sort_by: filters.sortBy,
+          })
+          onChange({ sortBy: value as FilterOptions['sortBy'] })
+        }}
       >
         <SelectTrigger className="w-[180px]">
           <SelectValue placeholder="Sort by..." />
@@ -33,7 +39,12 @@ export function FilterControls({ filters, onChange }: FilterControlsProps) {
       {/* Favorites toggle */}
       <Button
         variant={filters.favoriteOnly ? 'default' : 'outline'}
-        onClick={() => onChange({ favoriteOnly: !filters.favoriteOnly })}
+        onClick={() => {
+          pendo?.track('favorites_filter_toggled', {
+            new_state: !filters.favoriteOnly,
+          })
+          onChange({ favoriteOnly: !filters.favoriteOnly })
+        }}
       > 
         <HugeiconsIcon
           icon={StarIcon}
