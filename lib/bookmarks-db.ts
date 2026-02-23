@@ -16,7 +16,7 @@ async function ensureDataDir() {
   await fs.mkdir(path.dirname(DB_PATH), { recursive: true })
 }
 
-async function readBookmarksFile(): Promise<BookmarksData> {
+export async function readBookmarksFile(): Promise<BookmarksData> {
   try {
     const content = await fs.readFile(DB_PATH, 'utf-8')
     return JSON.parse(content)
