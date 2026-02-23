@@ -1,8 +1,44 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { getUserBookmarks, addBookmark, updateBookmark as dbUpdateBookmark, deleteBookmark as dbDeleteBookmark, getAllTags } from '@/lib/bookmarks-db'
+import { getUserBookmarks, addBookmark, updateBookmark as dbUpdateBookmark, deleteBookmark as dbDeleteBookmark, getAllTags, getUser } from '@/lib/bookmarks-db'
 import type { Bookmark, BookmarkInput, ServerActionResult } from '@/lib/types'
+
+export interface VisitorMetadata {
+  createdAt: string | null
+  bookmarkCount: number
+  favoriteCount: number
+  uniqueTagCount: number
+  tags: string[]
+  hasFavorites: boolean
+  maxPriorityUsed: number
+}
+
+export async function getVisitorMetadata(username: string): Promise<ServerActionResult<VisitorMetadata>> {
+  try {
+    const user = await getUser(username)
+    const bookmarks = user ? Object.values(user.bookmarks) : []
+    const tags = await getAllTags(username)
+
+    const favoriteCount = bookmarks.filter(b => b.isFavorite).length
+    const maxPriority = bookmarks.reduce((max, b) => Math.max(max, b.priority), 0)
+
+    return {
+      success: true,
+      data: {
+        createdAt: user?.createdAt ?? null,
+        bookmarkCount: bookmarks.length,
+        favoriteCount,
+        uniqueTagCount: tags.length,
+        tags,
+        hasFavorites: favoriteCount > 0,
+        maxPriorityUsed: maxPriority,
+      },
+    }
+  } catch (error: any) {
+    return { success: false, error: error.message }
+  }
+}
 
 export async function getBookmarks(username: string): Promise<ServerActionResult<Bookmark[]>> {
   try {
