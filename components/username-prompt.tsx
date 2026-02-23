@@ -27,6 +27,14 @@ export function UsernamePrompt({ isOpen, onSubmit }: UsernamePromptProps) {
       return
     }
 
+    if (typeof pendo !== 'undefined') {
+      pendo.track('username_set', {
+        username_length: trimmed.length,
+        contains_numbers: /\d/.test(trimmed),
+        contains_underscores: trimmed.includes('_'),
+      })
+    }
+
     onSubmit(trimmed)
   }
 
