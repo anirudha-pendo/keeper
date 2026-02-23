@@ -77,6 +77,7 @@ export function BookmarkForm({ isOpen, onClose, username, bookmark }: BookmarkFo
 
     try {
       let result
+      const isEditing = !!bookmark
       if (bookmark) {
         result = await updateBookmark(username, bookmark.id, formData)
       } else {
@@ -84,6 +85,41 @@ export function BookmarkForm({ isOpen, onClose, username, bookmark }: BookmarkFo
       }
 
       if (result.success) {
+        const urlDomain = (() => {
+          try { return new URL(formData.url).hostname } catch { return '' }
+        })()
+
+        if (isEditing && bookmark) {
+          const fieldsChanged: string[] = []
+          if (bookmark.url !== formData.url) fieldsChanged.push('url')
+          if (bookmark.title !== formData.title) fieldsChanged.push('title')
+          if ((bookmark.description || '') !== (formData.description || '')) fieldsChanged.push('description')
+          if (JSON.stringify(bookmark.tags) !== JSON.stringify(formData.tags)) fieldsChanged.push('tags')
+          if (bookmark.priority !== formData.priority) fieldsChanged.push('priority')
+          if (bookmark.isFavorite !== formData.isFavorite) fieldsChanged.push('isFavorite')
+
+          if (typeof pendo !== 'undefined') {
+            pendo.track('bookmark_updated', {
+              bookmark_id: bookmark.id,
+              bookmark_url_domain: urlDomain,
+              fields_changed: fieldsChanged.join(','),
+              new_priority_level: formData.priority,
+              new_tag_count: formData.tags.length,
+              has_description: !!formData.description,
+            })
+          }
+        } else {
+          if (typeof pendo !== 'undefined') {
+            pendo.track('bookmark_created', {
+              bookmark_url_domain: urlDomain,
+              has_description: !!formData.description,
+              tag_count: formData.tags.length,
+              priority_level: formData.priority,
+              is_favorite: formData.isFavorite,
+            })
+          }
+        }
+
         onClose()
       } else {
         setError(result.error || 'Failed to save bookmark')
