@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Add01Icon } from '@hugeicons/core-free-icons'
-import { getBookmarks } from '@/app/actions/bookmarks'
+import { getBookmarks, getVisitorMetadata } from '@/app/actions/bookmarks'
 import type { Bookmark, FilterOptions } from '@/lib/types'
 
 export default function Page() {
@@ -34,6 +34,31 @@ export default function Page() {
     if (username) {
       loadBookmarks()
     }
+  }, [username])
+
+  useEffect(() => {
+    if (!username) return
+
+    const initPendo = async () => {
+      const result = await getVisitorMetadata(username)
+      const meta = result.success && result.data ? result.data : null
+
+      pendo.initialize({
+        visitor: {
+          id: username,
+          username,
+          createdAt: meta?.createdAt ?? undefined,
+          bookmarkCount: meta?.bookmarkCount ?? 0,
+          favoriteCount: meta?.favoriteCount ?? 0,
+          tagCount: meta?.tagCount ?? 0,
+          hasFavorites: meta?.hasFavorites ?? false,
+          usesTags: meta?.usesTags ?? false,
+          maxPriorityUsed: meta?.maxPriorityUsed ?? 0,
+        },
+      })
+    }
+
+    initPendo()
   }, [username])
 
   const loadBookmarks = async () => {
