@@ -58,6 +58,9 @@ export default function Page() {
   }
 
   const handleAddNew = () => {
+    pendo.track('add_bookmark_clicked', {
+      current_bookmark_count: bookmarks.length,
+    })
     setEditingBookmark(undefined)
     setShowBookmarkForm(true)
   }
