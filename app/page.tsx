@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useUsername } from '@/hooks/use-username'
 import { useSearch } from '@/hooks/use-search'
 import { UsernamePrompt } from '@/components/username-prompt'
@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Add01Icon } from '@hugeicons/core-free-icons'
-import { getBookmarks } from '@/app/actions/bookmarks'
+import { getBookmarks, getVisitorMetadata } from '@/app/actions/bookmarks'
 import type { Bookmark, FilterOptions } from '@/lib/types'
 
 export default function Page() {
@@ -27,6 +27,7 @@ export default function Page() {
     favoriteOnly: false,
     sortBy: 'recent',
   })
+  const pendoInitialized = useRef(false)
 
   const filteredBookmarks = useSearch(bookmarks, filters)
 
@@ -36,6 +37,32 @@ export default function Page() {
     }
   }, [username])
 
+  const initializePendo = async (currentUsername: string) => {
+    if (pendoInitialized.current) return
+    pendoInitialized.current = true
+
+    const metadataResult = await getVisitorMetadata(currentUsername)
+    const metadata = metadataResult.success ? metadataResult.data : null
+
+    pendo.initialize({
+      visitor: {
+        id: currentUsername,
+        username: currentUsername,
+        createdAt: metadata?.createdAt ?? undefined,
+        bookmarkCount: metadata?.bookmarkCount ?? 0,
+        favoriteCount: metadata?.favoriteCount ?? 0,
+        tagCount: metadata?.tagCount ?? 0,
+        hasFavorites: metadata?.hasFavorites ?? false,
+        usesPriority: metadata?.usesPriority ?? false,
+        usesTags: metadata?.usesTags ?? false,
+        maxPriorityUsed: metadata?.maxPriorityUsed ?? 0,
+        topTags: metadata?.topTags ?? [],
+        preferredSortBy: filters.sortBy,
+        appVersion: '0.1.0',
+      },
+    })
+  }
+
   const loadBookmarks = async () => {
     if (!username) return
     setIsLoading(true)
@@ -44,6 +71,7 @@ export default function Page() {
       setBookmarks(result.data)
     }
     setIsLoading(false)
+    initializePendo(username)
   }
 
   const handleCloseForm = () => {
