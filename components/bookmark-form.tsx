@@ -56,20 +56,38 @@ export function BookmarkForm({ isOpen, onClose, username, bookmark }: BookmarkFo
 
     // Validate URL
     if (!formData.url.trim()) {
-      setError('URL is required')
+      const errorMsg = 'URL is required'
+      setError(errorMsg)
+      pendo.track('bookmark_form_validation_error', {
+        form_mode: bookmark ? 'edit' : 'create',
+        error_message: errorMsg,
+        error_type: 'missing_url',
+      })
       return
     }
 
     try {
       new URL(formData.url)
     } catch {
-      setError('Invalid URL format')
+      const errorMsg = 'Invalid URL format'
+      setError(errorMsg)
+      pendo.track('bookmark_form_validation_error', {
+        form_mode: bookmark ? 'edit' : 'create',
+        error_message: errorMsg,
+        error_type: 'invalid_url',
+      })
       return
     }
 
     // Validate title
     if (!formData.title.trim()) {
-      setError('Title is required')
+      const errorMsg = 'Title is required'
+      setError(errorMsg)
+      pendo.track('bookmark_form_validation_error', {
+        form_mode: bookmark ? 'edit' : 'create',
+        error_message: errorMsg,
+        error_type: 'missing_title',
+      })
       return
     }
 
@@ -84,12 +102,43 @@ export function BookmarkForm({ isOpen, onClose, username, bookmark }: BookmarkFo
       }
 
       if (result.success) {
+        const urlDomain = new URL(formData.url).hostname
+        if (bookmark) {
+          pendo.track('bookmark_updated', {
+            bookmark_id: bookmark.id,
+            url_domain: urlDomain,
+            new_priority: formData.priority,
+            new_tag_count: formData.tags.length,
+            is_favorite: formData.isFavorite,
+          })
+        } else {
+          pendo.track('bookmark_created', {
+            url_domain: urlDomain,
+            has_description: Boolean(formData.description?.trim()),
+            tag_count: formData.tags.length,
+            tags: formData.tags.join(','),
+            priority: formData.priority,
+            is_favorite: formData.isFavorite,
+          })
+        }
         onClose()
       } else {
-        setError(result.error || 'Failed to save bookmark')
+        const errorMsg = result.error || 'Failed to save bookmark'
+        setError(errorMsg)
+        pendo.track('bookmark_form_validation_error', {
+          form_mode: bookmark ? 'edit' : 'create',
+          error_message: errorMsg,
+          error_type: 'server_error',
+        })
       }
     } catch (err: any) {
-      setError(err.message || 'An error occurred')
+      const errorMsg = err.message || 'An error occurred'
+      setError(errorMsg)
+      pendo.track('bookmark_form_validation_error', {
+        form_mode: bookmark ? 'edit' : 'create',
+        error_message: errorMsg,
+        error_type: 'exception',
+      })
     } finally {
       setIsSubmitting(false)
     }
@@ -180,7 +229,13 @@ export function BookmarkForm({ isOpen, onClose, username, bookmark }: BookmarkFo
         </div>
 
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={isSubmitting}>Cancel</AlertDialogCancel>
+          <AlertDialogCancel disabled={isSubmitting} onClick={() => {
+            pendo.track('bookmark_form_cancelled', {
+              form_mode: bookmark ? 'edit' : 'create',
+              had_changes: Boolean(formData.url || formData.title || formData.description),
+              bookmark_id: bookmark?.id || null,
+            })
+          }}>Cancel</AlertDialogCancel>
           <AlertDialogAction onClick={handleSubmit} disabled={isSubmitting}>
             {isSubmitting ? 'Saving...' : bookmark ? 'Update' : 'Create'}
           </AlertDialogAction>
