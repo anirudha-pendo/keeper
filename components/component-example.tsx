@@ -393,7 +393,20 @@ function FormExample() {
           </CardAction>
         </CardHeader>
         <CardContent>
-          <form>
+          <form onSubmit={(e) => {
+            e.preventDefault()
+            const formEl = e.currentTarget
+            const nameInput = formEl.querySelector<HTMLInputElement>('#small-form-name')
+            const roleSelect = formEl.querySelector<HTMLButtonElement>('#small-form-role')
+            const frameworkInput = formEl.querySelector<HTMLInputElement>('#small-form-framework')
+            const commentsTextarea = formEl.querySelector<HTMLTextAreaElement>('#small-form-comments')
+            pendo?.track('component_showcase_form_submitted', {
+              has_name: !!nameInput?.value?.trim(),
+              has_role: !!roleSelect?.textContent?.trim() && roleSelect?.textContent?.trim() !== 'Select a role',
+              has_framework: !!frameworkInput?.value?.trim(),
+              has_comments: !!commentsTextarea?.value?.trim(),
+            })
+          }}>
             <FieldGroup>
               <div className="grid grid-cols-2 gap-4">
                 <Field>
