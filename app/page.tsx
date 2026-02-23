@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Add01Icon } from '@hugeicons/core-free-icons'
-import { getBookmarks } from '@/app/actions/bookmarks'
+import { getBookmarks, getVisitorMetadata } from '@/app/actions/bookmarks'
 import type { Bookmark, FilterOptions } from '@/lib/types'
 
 export default function Page() {
@@ -27,6 +27,7 @@ export default function Page() {
     favoriteOnly: false,
     sortBy: 'recent',
   })
+  const [pendoInitialized, setPendoInitialized] = useState(false)
 
   const filteredBookmarks = useSearch(bookmarks, filters)
 
@@ -35,6 +36,39 @@ export default function Page() {
       loadBookmarks()
     }
   }, [username])
+
+  useEffect(() => {
+    if (!username || pendoInitialized) return
+
+    async function initPendo() {
+      const metadataResult = await getVisitorMetadata(username!)
+
+      const visitorData: Record<string, any> = {
+        id: username,
+      }
+
+      if (metadataResult.success && metadataResult.data) {
+        const m = metadataResult.data
+        if (m.createdAt) visitorData.createdAt = m.createdAt
+        visitorData.bookmarkCount = m.bookmarkCount
+        visitorData.favoriteCount = m.favoriteCount
+        visitorData.uniqueTagCount = m.uniqueTagCount
+        visitorData.tags = m.tags
+        visitorData.hasFavorites = m.hasFavorites
+        visitorData.maxPriorityUsed = m.maxPriorityUsed
+      }
+
+      visitorData.preferredSortBy = filters.sortBy
+
+      pendo.initialize({
+        visitor: visitorData,
+      })
+
+      setPendoInitialized(true)
+    }
+
+    initPendo()
+  }, [username, pendoInitialized])
 
   const loadBookmarks = async () => {
     if (!username) return
