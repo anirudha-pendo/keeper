@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useUsername } from '@/hooks/use-username'
 import { useSearch } from '@/hooks/use-search'
 import { UsernamePrompt } from '@/components/username-prompt'
@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Add01Icon } from '@hugeicons/core-free-icons'
-import { getBookmarks } from '@/app/actions/bookmarks'
+import { getBookmarks, getTags } from '@/app/actions/bookmarks'
 import type { Bookmark, FilterOptions } from '@/lib/types'
 
 export default function Page() {
@@ -28,6 +28,8 @@ export default function Page() {
     sortBy: 'recent',
   })
 
+  const pendoInitialized = useRef(false)
+
   const filteredBookmarks = useSearch(bookmarks, filters)
 
   useEffect(() => {
@@ -35,6 +37,38 @@ export default function Page() {
       loadBookmarks()
     }
   }, [username])
+
+  // Initialize Pendo after user signs in and bookmarks are loaded
+  useEffect(() => {
+    if (!username || isLoading || pendoInitialized.current) return
+
+    const initPendo = async () => {
+      const tagsResult = await getTags(username)
+      const tags = tagsResult.success && tagsResult.data ? tagsResult.data : []
+      const favoriteCount = bookmarks.filter(b => b.isFavorite).length
+      const maxPriority = bookmarks.length > 0
+        ? Math.max(...bookmarks.map(b => b.priority))
+        : 0
+
+      pendo.initialize({
+        visitor: {
+          id: username,
+          username: username,
+          bookmarkCount: bookmarks.length,
+          favoriteCount: favoriteCount,
+          tagCount: tags.length,
+          hasFavorites: favoriteCount > 0,
+          hasTags: tags.length > 0,
+          maxPriorityUsed: maxPriority,
+          preferredSortBy: filters.sortBy,
+        },
+      })
+
+      pendoInitialized.current = true
+    }
+
+    initPendo()
+  }, [username, isLoading])
 
   const loadBookmarks = async () => {
     if (!username) return
