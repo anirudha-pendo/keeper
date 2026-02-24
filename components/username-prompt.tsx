@@ -27,6 +27,13 @@ export function UsernamePrompt({ isOpen, onSubmit }: UsernamePromptProps) {
       return
     }
 
+    if (typeof window !== 'undefined' && window.pendo) {
+      window.pendo.track('user_registered', {
+        username: trimmed,
+        username_length: trimmed.length,
+      })
+    }
+
     onSubmit(trimmed)
   }
 
