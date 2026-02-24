@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useUsername } from '@/hooks/use-username'
 import { useSearch } from '@/hooks/use-search'
 import { UsernamePrompt } from '@/components/username-prompt'
@@ -21,6 +21,7 @@ export default function Page() {
   const [isLoading, setIsLoading] = useState(true)
   const [showBookmarkForm, setShowBookmarkForm] = useState(false)
   const [editingBookmark, setEditingBookmark] = useState<Bookmark | undefined>()
+  const pendoInitialized = useRef(false)
 
   const [filters, setFilters] = useState<FilterOptions>({
     query: '',
@@ -29,6 +30,55 @@ export default function Page() {
   })
 
   const filteredBookmarks = useSearch(bookmarks, filters)
+
+  // Initialize Pendo with anonymous visitor on mount
+  useEffect(() => {
+    if (!pendoInitialized.current && typeof pendo !== 'undefined') {
+      pendo.initialize({
+        visitor: {
+          id: 'ANONYMOUS_VISITOR_ID',
+        },
+      })
+      pendoInitialized.current = true
+    }
+  }, [])
+
+  // Identify visitor with metadata once username and bookmarks are available
+  useEffect(() => {
+    if (!username || isLoading || typeof pendo === 'undefined') return
+
+    const favoriteCount = bookmarks.filter((b) => b.isFavorite).length
+    const hasFavorites = favoriteCount > 0
+    const tagsSet = new Set<string>()
+    bookmarks.forEach((b) => b.tags.forEach((t) => tagsSet.add(t)))
+    const tags = Array.from(tagsSet).sort()
+    const highestPriority = bookmarks.reduce((max, b) => Math.max(max, b.priority), 0)
+
+    const createdDates = bookmarks.map((b) => b.createdAt).filter(Boolean)
+    const updatedDates = bookmarks.map((b) => b.updatedAt).filter(Boolean)
+    const lastBookmarkCreatedAt = createdDates.length > 0
+      ? createdDates.sort().reverse()[0]
+      : undefined
+    const lastBookmarkUpdatedAt = updatedDates.length > 0
+      ? updatedDates.sort().reverse()[0]
+      : undefined
+
+    pendo.identify({
+      visitor: {
+        id: username,
+        username: username,
+        bookmarkCount: bookmarks.length,
+        favoriteCount: favoriteCount,
+        tagCount: tags.length,
+        tags: tags,
+        hasFavorites: hasFavorites,
+        highestPriority: highestPriority,
+        preferredSortBy: filters.sortBy,
+        lastBookmarkCreatedAt: lastBookmarkCreatedAt,
+        lastBookmarkUpdatedAt: lastBookmarkUpdatedAt,
+      },
+    })
+  }, [username, bookmarks, isLoading, filters.sortBy])
 
   useEffect(() => {
     if (username) {
