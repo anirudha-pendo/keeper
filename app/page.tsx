@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useUsername } from '@/hooks/use-username'
 import { useSearch } from '@/hooks/use-search'
 import { UsernamePrompt } from '@/components/username-prompt'
@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Add01Icon } from '@hugeicons/core-free-icons'
-import { getBookmarks } from '@/app/actions/bookmarks'
+import { getBookmarks, getVisitorMetadata } from '@/app/actions/bookmarks'
 import type { Bookmark, FilterOptions } from '@/lib/types'
 
 export default function Page() {
@@ -21,6 +21,7 @@ export default function Page() {
   const [isLoading, setIsLoading] = useState(true)
   const [showBookmarkForm, setShowBookmarkForm] = useState(false)
   const [editingBookmark, setEditingBookmark] = useState<Bookmark | undefined>()
+  const pendoInitialized = useRef(false)
 
   const [filters, setFilters] = useState<FilterOptions>({
     query: '',
@@ -29,6 +30,41 @@ export default function Page() {
   })
 
   const filteredBookmarks = useSearch(bookmarks, filters)
+
+  // Initialize Pendo with anonymous visitor on app load
+  useEffect(() => {
+    if (!pendoInitialized.current && typeof pendo !== 'undefined') {
+      pendo.initialize({
+        visitor: {
+          id: 'ANONYMOUS_VISITOR_ID',
+        },
+      })
+      pendoInitialized.current = true
+    }
+  }, [])
+
+  // Identify visitor with Pendo once username is available
+  useEffect(() => {
+    if (username && typeof pendo !== 'undefined') {
+      getVisitorMetadata(username).then((result) => {
+        const metadata = result.success && result.data ? result.data : null
+        pendo.identify({
+          visitor: {
+            id: username,
+            username: username,
+            createdAt: metadata?.createdAt ?? undefined,
+            bookmarkCount: metadata?.bookmarkCount ?? 0,
+            favoriteBookmarkCount: metadata?.favoriteBookmarkCount ?? 0,
+            uniqueTagCount: metadata?.uniqueTagCount ?? 0,
+            tags: metadata?.tags ?? [],
+            highestPriorityUsed: metadata?.highestPriorityUsed ?? 0,
+            lastBookmarkCreatedAt: metadata?.lastBookmarkCreatedAt ?? undefined,
+            lastBookmarkUpdatedAt: metadata?.lastBookmarkUpdatedAt ?? undefined,
+          },
+        })
+      })
+    }
+  }, [username])
 
   useEffect(() => {
     if (username) {
