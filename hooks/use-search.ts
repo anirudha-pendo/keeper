@@ -1,10 +1,10 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useEffect, useRef } from 'react'
 import type { Bookmark, FilterOptions } from '@/lib/types'
 
 export function useSearch(bookmarks: Bookmark[], filters: FilterOptions): Bookmark[] {
-  return useMemo(() => {
+  const results = useMemo(() => {
     let results = [...bookmarks]
 
     // Text search
@@ -44,4 +44,32 @@ export function useSearch(bookmarks: Bookmark[], filters: FilterOptions): Bookma
 
     return results
   }, [bookmarks, filters])
+
+  // Track search events with debounce to avoid firing on every keystroke
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => {
+    if (!filters.query) return
+
+    if (searchTimerRef.current) {
+      clearTimeout(searchTimerRef.current)
+    }
+
+    searchTimerRef.current = setTimeout(() => {
+      pendo.track('bookmark_search_executed', {
+        query_length: filters.query.length,
+        results_count: results.length,
+        total_bookmarks_count: bookmarks.length,
+        favorite_only_active: filters.favoriteOnly,
+        sort_by: filters.sortBy,
+      })
+    }, 300)
+
+    return () => {
+      if (searchTimerRef.current) {
+        clearTimeout(searchTimerRef.current)
+      }
+    }
+  }, [filters.query, results.length, bookmarks.length, filters.favoriteOnly, filters.sortBy])
+
+  return results
 }
