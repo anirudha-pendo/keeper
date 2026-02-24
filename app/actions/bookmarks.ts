@@ -1,8 +1,46 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { getUserBookmarks, addBookmark, updateBookmark as dbUpdateBookmark, deleteBookmark as dbDeleteBookmark, getAllTags } from '@/lib/bookmarks-db'
+import { getUserBookmarks, addBookmark, updateBookmark as dbUpdateBookmark, deleteBookmark as dbDeleteBookmark, getAllTags, getUser } from '@/lib/bookmarks-db'
 import type { Bookmark, BookmarkInput, ServerActionResult } from '@/lib/types'
+
+export interface VisitorMetadata {
+  createdAt: string | null
+  bookmarkCount: number
+  favoriteBookmarkCount: number
+  uniqueTagCount: number
+  tags: string[]
+  highestPriorityUsed: number
+  lastBookmarkCreatedAt: string | null
+  lastBookmarkUpdatedAt: string | null
+}
+
+export async function getVisitorMetadata(username: string): Promise<ServerActionResult<VisitorMetadata>> {
+  try {
+    const user = await getUser(username)
+    const bookmarks = user ? Object.values(user.bookmarks) : []
+    const tags = await getAllTags(username)
+
+    const metadata: VisitorMetadata = {
+      createdAt: user?.createdAt ?? null,
+      bookmarkCount: bookmarks.length,
+      favoriteBookmarkCount: bookmarks.filter(b => b.isFavorite).length,
+      uniqueTagCount: tags.length,
+      tags,
+      highestPriorityUsed: bookmarks.length > 0 ? Math.max(...bookmarks.map(b => b.priority)) : 0,
+      lastBookmarkCreatedAt: bookmarks.length > 0
+        ? bookmarks.reduce((latest, b) => b.createdAt > latest ? b.createdAt : latest, bookmarks[0].createdAt)
+        : null,
+      lastBookmarkUpdatedAt: bookmarks.length > 0
+        ? bookmarks.reduce((latest, b) => b.updatedAt > latest ? b.updatedAt : latest, bookmarks[0].updatedAt)
+        : null,
+    }
+
+    return { success: true, data: metadata }
+  } catch (error: any) {
+    return { success: false, error: error.message }
+  }
+}
 
 export async function getBookmarks(username: string): Promise<ServerActionResult<Bookmark[]>> {
   try {
