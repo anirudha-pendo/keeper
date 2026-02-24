@@ -114,3 +114,32 @@ export async function getAllTags(username: string): Promise<string[]> {
   })
   return Array.from(tagsSet).sort()
 }
+
+export async function getUserMetadata(username: string): Promise<{
+  createdAt: string | null
+  bookmarkCount: number
+  tagCount: number
+  favoriteCount: number
+  tags: string[]
+}> {
+  const data = await readBookmarksFile()
+  const user = data.users[username]
+  if (!user) {
+    return { createdAt: null, bookmarkCount: 0, tagCount: 0, favoriteCount: 0, tags: [] }
+  }
+  const bookmarks = Object.values(user.bookmarks)
+  const tagsSet = new Set<string>()
+  let favoriteCount = 0
+  bookmarks.forEach(bookmark => {
+    bookmark.tags.forEach(tag => tagsSet.add(tag))
+    if (bookmark.isFavorite) favoriteCount++
+  })
+  const tags = Array.from(tagsSet).sort()
+  return {
+    createdAt: user.createdAt,
+    bookmarkCount: bookmarks.length,
+    tagCount: tags.length,
+    favoriteCount,
+    tags,
+  }
+}
