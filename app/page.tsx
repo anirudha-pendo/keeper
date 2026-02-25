@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useUsername } from '@/hooks/use-username'
 import { useSearch } from '@/hooks/use-search'
 import { UsernamePrompt } from '@/components/username-prompt'
@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Add01Icon } from '@hugeicons/core-free-icons'
-import { getBookmarks } from '@/app/actions/bookmarks'
+import { getBookmarks, getUserCreatedAt } from '@/app/actions/bookmarks'
 import type { Bookmark, FilterOptions } from '@/lib/types'
 
 export default function Page() {
@@ -29,6 +29,41 @@ export default function Page() {
   })
 
   const filteredBookmarks = useSearch(bookmarks, filters)
+  const pendoIdentifiedRef = useRef(false)
+
+  // Initialize Pendo with anonymous visitor on app load
+  useEffect(() => {
+    pendo.initialize({
+      visitor: {
+        id: 'ANONYMOUS_VISITOR_ID',
+      },
+    })
+  }, [])
+
+  // Identify visitor with actual data after sign-in and bookmarks load
+  useEffect(() => {
+    if (pendoIdentifiedRef.current || !username || isLoading) return
+    pendoIdentifiedRef.current = true
+
+    const favoriteCount = bookmarks.filter((b) => b.isFavorite).length
+    const uniqueTags = new Set<string>()
+    bookmarks.forEach((b) => b.tags.forEach((t) => uniqueTags.add(t)))
+
+    getUserCreatedAt(username).then((result) => {
+      pendo.identify({
+        visitor: {
+          id: username,
+          username: username,
+          createdAt: result.success && result.data ? result.data : undefined,
+          bookmarkCount: bookmarks.length,
+          favoriteCount: favoriteCount,
+          uniqueTagCount: uniqueTags.size,
+          sortPreference: filters.sortBy,
+          usesFavoriteFilter: filters.favoriteOnly,
+        },
+      })
+    })
+  }, [username, isLoading])
 
   useEffect(() => {
     if (username) {

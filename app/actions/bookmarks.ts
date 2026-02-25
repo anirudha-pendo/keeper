@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { getUserBookmarks, addBookmark, updateBookmark as dbUpdateBookmark, deleteBookmark as dbDeleteBookmark, getAllTags } from '@/lib/bookmarks-db'
+import { getUserBookmarks, addBookmark, updateBookmark as dbUpdateBookmark, deleteBookmark as dbDeleteBookmark, getAllTags, getUserCreatedAt as dbGetUserCreatedAt } from '@/lib/bookmarks-db'
 import type { Bookmark, BookmarkInput, ServerActionResult } from '@/lib/types'
 
 export async function getBookmarks(username: string): Promise<ServerActionResult<Bookmark[]>> {
@@ -76,6 +76,15 @@ export async function deleteBookmark(username: string, id: string): Promise<Serv
     await dbDeleteBookmark(username, id)
     revalidatePath('/')
     return { success: true }
+  } catch (error: any) {
+    return { success: false, error: error.message }
+  }
+}
+
+export async function getUserCreatedAt(username: string): Promise<ServerActionResult<string | null>> {
+  try {
+    const createdAt = await dbGetUserCreatedAt(username)
+    return { success: true, data: createdAt }
   } catch (error: any) {
     return { success: false, error: error.message }
   }

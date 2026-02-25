@@ -106,6 +106,12 @@ export async function deleteBookmark(username: string, id: string): Promise<void
   await writeBookmarksFile(data)
 }
 
+export async function getUserCreatedAt(username: string): Promise<string | null> {
+  const data = await readBookmarksFile()
+  const user = data.users[username]
+  return user?.createdAt ?? null
+}
+
 export async function getAllTags(username: string): Promise<string[]> {
   const bookmarks = await getUserBookmarks(username)
   const tagsSet = new Set<string>()
