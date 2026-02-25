@@ -36,6 +36,17 @@ export default function Page() {
     }
   }, [username])
 
+  useEffect(() => {
+    if (username) {
+      pendo.identify({
+        visitor: {
+          id: username,
+          full_name: username,
+        },
+      })
+    }
+  }, [username])
+
   const loadBookmarks = async () => {
     if (!username) return
     setIsLoading(true)
