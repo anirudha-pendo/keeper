@@ -8,6 +8,7 @@ import { BookmarkGrid } from '@/components/bookmark-grid'
 import { BookmarkForm } from '@/components/bookmark-form'
 import { SearchBar } from '@/components/search-bar'
 import { FilterControls } from '@/components/filter-controls'
+import { PendoInitializer } from '@/components/pendo-initializer'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { HugeiconsIcon } from '@hugeicons/react'
@@ -69,17 +70,24 @@ export default function Page() {
   if (isUsernameLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
+        <PendoInitializer username={null} />
         <p className="text-muted-foreground">Loading...</p>
       </div>
     )
   }
 
   if (!username) {
-    return <UsernamePrompt isOpen={true} onSubmit={setUsername} />
+    return (
+      <>
+        <PendoInitializer username={null} />
+        <UsernamePrompt isOpen={true} onSubmit={setUsername} />
+      </>
+    )
   }
 
   return (
     <div className="min-h-screen bg-background">
+      <PendoInitializer username={username} />
       <div className="container mx-auto px-4 py-6 max-w-7xl">
         {/* Header */}
         <div className="mb-6">
