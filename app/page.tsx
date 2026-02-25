@@ -63,7 +63,19 @@ export default function Page() {
   }
 
   const updateFilters = (updates: Partial<FilterOptions>) => {
-    setFilters((prev) => ({ ...prev, ...updates }))
+    setFilters((prev) => {
+      const newFilters = { ...prev, ...updates }
+
+      if (('sortBy' in updates || 'favoriteOnly' in updates) && typeof pendo !== 'undefined') {
+        pendo.track("bookmarks_filtered", {
+          sort_by: newFilters.sortBy,
+          favorite_only: newFilters.favoriteOnly,
+          has_active_query: !!newFilters.query.trim(),
+        })
+      }
+
+      return newFilters
+    })
   }
 
   if (isUsernameLoading) {
