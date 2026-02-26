@@ -181,7 +181,7 @@ export async function updateCollection(username: string, id: string, updates: Pa
 }
 
 export async function getUserCreatedAt(username: string): Promise<string | null> {
-  const data = await readBookmarksFile()
+  const data = readData()
   return data.users[username]?.createdAt ?? null
 }
 

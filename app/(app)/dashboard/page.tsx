@@ -26,16 +26,16 @@ import {
   Add01Icon,
   ArrowRight01Icon,
   Upload04Icon,
-  Search01Icon,
   Settings01Icon,
 } from '@hugeicons/core-free-icons'
-import type { Bookmark } from '@/lib/types'
+import type { Bookmark, Collection } from '@/lib/types'
 
 interface DashboardData {
   totalBookmarks: number
   favoritesCount: number
   tagsCount: number
   collectionsCount: number
+  collections: Collection[]
   recentBookmarks: Bookmark[]
   topTags: { tag: string; count: number }[]
 }
@@ -188,17 +188,41 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
 
-              <Card
-                className="cursor-pointer hover:border-primary/50 transition-colors"
-                onClick={() => setCommandOpen(true)}
-                data-tracking-id="dashboard-quick-actions-trigger"
-              >
-                <CardContent className="px-3 py-2.5 flex items-center gap-2">
-                  <HugeiconsIcon icon={Search01Icon} strokeWidth={2} className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground flex-1">Quick actions...</span>
-                  <kbd className="pointer-events-none inline-flex h-5 items-center gap-0.5 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground select-none">
-                    <span className="text-xs">⌘</span>K
-                  </kbd>
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm">Collections</CardTitle>
+                    <Link
+                      href="/collections"
+                      className="text-[10px] text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1"
+                      data-tracking-id="dashboard-view-all-collections"
+                    >
+                      View all
+                      <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} className="h-3 w-3" />
+                    </Link>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  {stats.collections.length === 0 ? (
+                    <p className="text-xs text-muted-foreground py-4 text-center">No collections yet</p>
+                  ) : (
+                    <div className="space-y-1">
+                      {stats.collections.slice(0, 5).map((collection) => (
+                        <Link
+                          key={collection.id}
+                          href={`/bookmarks?collection=${collection.id}`}
+                          className="flex items-center gap-2 rounded-md p-2 -mx-2 hover:bg-accent transition-colors"
+                          data-tracking-id="dashboard-collection"
+                        >
+                          <div
+                            className="w-2.5 h-2.5 rounded-full shrink-0"
+                            style={{ backgroundColor: collection.color }}
+                          />
+                          <span className="text-xs font-medium truncate">{collection.name}</span>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>

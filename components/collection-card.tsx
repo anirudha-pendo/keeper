@@ -23,7 +23,7 @@ export function CollectionCard({ collection, bookmarkCount, onEdit, onDelete, on
   return (
     <>
       <Card
-        className="cursor-pointer hover:border-primary/50 transition-colors"
+        className="cursor-pointer hover:border-primary/50 transition-colors p-0"
         onClick={() => onClick(collection)}
         data-tracking-id="collection-card"
       >

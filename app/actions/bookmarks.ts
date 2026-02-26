@@ -242,6 +242,7 @@ export async function getDashboardStats(username: string): Promise<ServerActionR
   favoritesCount: number
   tagsCount: number
   collectionsCount: number
+  collections: Collection[]
   recentBookmarks: Bookmark[]
   topTags: { tag: string; count: number }[]
 }>> {
@@ -276,6 +277,7 @@ export async function getDashboardStats(username: string): Promise<ServerActionR
         favoritesCount,
         tagsCount: Object.keys(tagCounts).length,
         collectionsCount: collections.length,
+        collections,
         recentBookmarks,
         topTags,
       },
