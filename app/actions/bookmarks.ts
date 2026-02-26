@@ -13,8 +13,19 @@ import {
   addCollection as dbAddCollection,
   updateCollection as dbUpdateCollection,
   deleteCollection as dbDeleteCollection,
+  getUser,
 } from '@/lib/bookmarks-db'
 import type { Bookmark, BookmarkInput, Collection, ServerActionResult } from '@/lib/types'
+
+export async function getUserInfo(username: string): Promise<ServerActionResult<{ createdAt: string } | null>> {
+  try {
+    const user = await getUser(username)
+    if (!user) return { success: true, data: null }
+    return { success: true, data: { createdAt: user.createdAt } }
+  } catch (error: any) {
+    return { success: false, error: error.message }
+  }
+}
 
 export async function getBookmarks(username: string): Promise<ServerActionResult<Bookmark[]>> {
   try {
