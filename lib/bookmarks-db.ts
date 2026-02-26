@@ -60,6 +60,11 @@ function ensureUserCollections(user: User): void {
   }
 }
 
+export async function getUser(username: string): Promise<User | null> {
+  const data = await readBookmarksFile()
+  return data.users[username] || null
+}
+
 export async function getUserBookmarks(username: string): Promise<Bookmark[]> {
   const data = await readBookmarksFile()
   const user = data.users[username]
