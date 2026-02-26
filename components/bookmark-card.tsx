@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu'
 import { HugeiconsIcon } from '@hugeicons/react'
@@ -16,7 +17,9 @@ import {
   MinusSignIcon,
   ArrowDown01Icon,
   CircleIcon,
+  Copy01Icon,
 } from '@hugeicons/core-free-icons'
+import { toast } from 'sonner'
 import type { Bookmark } from '@/lib/types'
 import { toggleFavorite, deleteBookmark } from '@/app/actions/bookmarks'
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel } from '@/components/ui/alert-dialog'
@@ -33,22 +36,9 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [faviconError, setFaviconError] = useState(false)
 
-  const getBookmarkAgeDays = () => {
-    return Math.floor((Date.now() - new Date(bookmark.createdAt).getTime()) / (1000 * 60 * 60 * 24))
-  }
-
-  const getUrlDomain = () => {
-    try { return new URL(bookmark.url).hostname } catch { return '' }
-  }
-
   const handleToggleFavorite = async () => {
     const newState = !isFavorite
     setIsFavorite(newState)
-    pendo?.track('bookmark_favorite_toggled', {
-      bookmark_id: bookmark.id,
-      new_state: newState,
-      url_domain: getUrlDomain(),
-    })
     const result = await toggleFavorite(username, bookmark.id, bookmark.isFavorite)
     if (!result.success) {
       setIsFavorite(!newState)
@@ -58,13 +48,6 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
   const handleDelete = async () => {
     const result = await deleteBookmark(username, bookmark.id)
     if (result.success) {
-      pendo?.track('bookmark_deleted', {
-        bookmark_id: bookmark.id,
-        bookmark_age_days: getBookmarkAgeDays(),
-        had_tags: bookmark.tags.length > 0,
-        was_favorite: bookmark.isFavorite,
-        priority: bookmark.priority,
-      })
       setShowDeleteDialog(false)
       onDelete?.()
     }
@@ -195,22 +178,19 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={() => {
-                    pendo?.track('bookmark_opened', {
-                      bookmark_id: bookmark.id,
-                      url_domain: getUrlDomain(),
-                      open_method: 'dropdown_menu',
-                      bookmark_age_days: getBookmarkAgeDays(),
-                    })
                     window.open(bookmark.url, '_blank')
                   }} data-tracking-id="bookmark-open-action">
                     <HugeiconsIcon icon={ExternalLink} strokeWidth={2} className="mr-2 h-4 w-4" />
                     Open
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => {
-                    pendo?.track('bookmark_edit_initiated', {
-                      bookmark_id: bookmark.id,
-                      bookmark_age_days: getBookmarkAgeDays(),
-                    })
+                    navigator.clipboard.writeText(bookmark.url)
+                    toast.success('Link copied to clipboard')
+                  }} data-tracking-id="bookmark-copy-link-action">
+                    <HugeiconsIcon icon={Copy01Icon} strokeWidth={2} className="mr-2 h-4 w-4" />
+                    Copy Link
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => {
                     onEdit(bookmark)
                   }} data-tracking-id="bookmark-edit-action">
                     <HugeiconsIcon icon={EditIcon} strokeWidth={2} className="mr-2 h-4 w-4" />
@@ -218,9 +198,6 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => {
-                    pendo?.track('bookmark_delete_initiated', {
-                      bookmark_id: bookmark.id,
-                    })
                     setShowDeleteDialog(true)
                   }} className="text-destructive" data-tracking-id="bookmark-delete-action">
                     <HugeiconsIcon icon={DeleteIcon} strokeWidth={2} className="mr-2 h-4 w-4" />
@@ -237,6 +214,18 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
             <p className="text-xs text-muted-foreground leading-relaxed">
               {truncateDescription(bookmark.description, 120)}
             </p>
+          </CardContent>
+        )}
+
+        {bookmark.tags.length > 0 && (
+          <CardContent className="pt-0 pb-3">
+            <div className="flex flex-wrap gap-1">
+              {bookmark.tags.map((tag) => (
+                <Badge key={tag} variant="secondary" className="text-[10px] h-4 px-1.5">
+                  {tag}
+                </Badge>
+              ))}
+            </div>
           </CardContent>
         )}
 

@@ -1,6 +1,6 @@
 import fs from 'fs/promises'
 import path from 'path'
-import type { Bookmark, BookmarksData, User } from './types'
+import type { Bookmark, BookmarksData, Collection, User } from './types'
 
 const DB_PATH = path.join(process.cwd(), 'data', 'bookmarks.json')
 
@@ -54,6 +54,12 @@ async function writeBookmarksFile(data: BookmarksData): Promise<void> {
   await fs.rename(tempPath, DB_PATH) // Atomic operation
 }
 
+function ensureUserCollections(user: User): void {
+  if (!user.collections) {
+    user.collections = {}
+  }
+}
+
 export async function getUserBookmarks(username: string): Promise<Bookmark[]> {
   const data = await readBookmarksFile()
   const user = data.users[username]
@@ -71,6 +77,7 @@ export async function addBookmark(username: string, bookmark: Bookmark): Promise
       username,
       createdAt: new Date().toISOString(),
       bookmarks: {},
+      collections: {},
     }
   }
 
@@ -106,6 +113,14 @@ export async function deleteBookmark(username: string, id: string): Promise<void
   await writeBookmarksFile(data)
 }
 
+export async function clearUserBookmarks(username: string): Promise<void> {
+  const data = await readBookmarksFile()
+  if (data.users[username]) {
+    data.users[username].bookmarks = {}
+    await writeBookmarksFile(data)
+  }
+}
+
 export async function getAllTags(username: string): Promise<string[]> {
   const bookmarks = await getUserBookmarks(username)
   const tagsSet = new Set<string>()
@@ -113,4 +128,106 @@ export async function getAllTags(username: string): Promise<string[]> {
     bookmark.tags.forEach(tag => tagsSet.add(tag))
   })
   return Array.from(tagsSet).sort()
+}
+
+export async function findBookmarkByUrl(username: string, url: string): Promise<Bookmark | null> {
+  const bookmarks = await getUserBookmarks(username)
+  try {
+    const normalizedUrl = new URL(url).href
+    return bookmarks.find((b) => {
+      try {
+        return new URL(b.url).href === normalizedUrl
+      } catch {
+        return b.url === url
+      }
+    }) || null
+  } catch {
+    return bookmarks.find((b) => b.url === url) || null
+  }
+}
+
+export async function bulkAddBookmarks(username: string, bookmarks: Bookmark[]): Promise<number> {
+  const data = await readBookmarksFile()
+
+  if (!data.users[username]) {
+    data.users[username] = {
+      username,
+      createdAt: new Date().toISOString(),
+      bookmarks: {},
+      collections: {},
+    }
+  }
+
+  let added = 0
+  for (const bookmark of bookmarks) {
+    data.users[username].bookmarks[bookmark.id] = bookmark
+    added++
+  }
+
+  await writeBookmarksFile(data)
+  return added
+}
+
+// Collection CRUD
+export async function getUserCollections(username: string): Promise<Collection[]> {
+  const data = await readBookmarksFile()
+  const user = data.users[username]
+  if (!user) return []
+  ensureUserCollections(user)
+  return Object.values(user.collections)
+}
+
+export async function addCollection(username: string, collection: Collection): Promise<void> {
+  const data = await readBookmarksFile()
+
+  if (!data.users[username]) {
+    data.users[username] = {
+      username,
+      createdAt: new Date().toISOString(),
+      bookmarks: {},
+      collections: {},
+    }
+  }
+
+  ensureUserCollections(data.users[username])
+  data.users[username].collections[collection.id] = collection
+  await writeBookmarksFile(data)
+}
+
+export async function updateCollection(username: string, id: string, updates: Partial<Collection>): Promise<void> {
+  const data = await readBookmarksFile()
+  ensureUserCollections(data.users[username])
+
+  if (!data.users[username]?.collections[id]) {
+    throw new Error('Collection not found')
+  }
+
+  data.users[username].collections[id] = {
+    ...data.users[username].collections[id],
+    ...updates,
+    id,
+  }
+
+  await writeBookmarksFile(data)
+}
+
+export async function deleteCollection(username: string, id: string): Promise<void> {
+  const data = await readBookmarksFile()
+  ensureUserCollections(data.users[username])
+
+  if (!data.users[username]?.collections[id]) {
+    throw new Error('Collection not found')
+  }
+
+  delete data.users[username].collections[id]
+
+  // Remove collectionId from bookmarks that reference it
+  const bookmarks = data.users[username].bookmarks
+  for (const bookmarkId of Object.keys(bookmarks)) {
+    if (bookmarks[bookmarkId].collectionId === id) {
+      bookmarks[bookmarkId].collectionId = undefined
+    }
+  }
+
+  await writeBookmarksFile(data)
 }

@@ -14,13 +14,26 @@ export function useSearch(bookmarks: Bookmark[], filters: FilterOptions): Bookma
         (b) =>
           b.title.toLowerCase().includes(q) ||
           b.description?.toLowerCase().includes(q) ||
-          b.url.toLowerCase().includes(q)
+          b.url.toLowerCase().includes(q) ||
+          b.tags.some((tag) => tag.toLowerCase().includes(q))
       )
     }
 
     // Favorites only
     if (filters.favoriteOnly) {
       results = results.filter((b) => b.isFavorite)
+    }
+
+    // Tag filter
+    if (filters.selectedTags && filters.selectedTags.length > 0) {
+      results = results.filter((b) =>
+        filters.selectedTags.every((tag) => b.tags.includes(tag))
+      )
+    }
+
+    // Collection filter
+    if (filters.collectionId) {
+      results = results.filter((b) => b.collectionId === filters.collectionId)
     }
 
     // Sort
