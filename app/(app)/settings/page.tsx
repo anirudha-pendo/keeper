@@ -34,6 +34,10 @@ export default function SettingsPage() {
     if (!username) return
     const result = await getBookmarks(username)
     if (result.success && result.data) {
+      window.pendo?.track("bookmarks_exported", {
+        bookmark_count: result.data.length,
+        file_format: "json",
+      })
       const blob = new Blob([JSON.stringify(result.data, null, 2)], { type: 'application/json' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -87,6 +91,13 @@ export default function SettingsPage() {
         }
       })
 
+      window.pendo?.track("import_file_parsed", {
+        file_format: format,
+        bookmarks_found: parsed.length,
+        duplicates_detected: duplicates.size,
+        file_type: file.name.split('.').pop() || "unknown",
+      })
+
       setImportBookmarksList(parsed)
       setImportDuplicates(duplicates)
       setShowImportDialog(true)
@@ -99,6 +110,12 @@ export default function SettingsPage() {
     if (!username) return
     const result = await importBookmarks(username, bookmarks)
     if (result.success && result.data) {
+      window.pendo?.track("bookmarks_import_completed", {
+        imported_count: result.data.imported,
+        skipped_count: result.data.skipped || 0,
+        total_in_file: bookmarks.length,
+        duplicates_found: importDuplicates.size,
+      })
       toast.success(`Imported ${result.data.imported} bookmark${result.data.imported !== 1 ? 's' : ''}`)
       setShowImportDialog(false)
     } else {
@@ -107,6 +124,9 @@ export default function SettingsPage() {
   }
 
   const handleLogout = () => {
+    window.pendo?.track("user_logged_out", {
+      logout_source: "settings",
+    })
     clearUsername()
     router.replace('/auth')
   }
@@ -147,7 +167,13 @@ export default function SettingsPage() {
                   key={option.value}
                   variant={theme === option.value ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => setTheme(option.value)}
+                  onClick={() => {
+                    window.pendo?.track("theme_changed", {
+                      new_theme: option.value,
+                      previous_theme: theme,
+                    })
+                    setTheme(option.value)
+                  }}
                   className={cn(
                     'text-xs',
                     theme !== option.value && 'text-muted-foreground'
