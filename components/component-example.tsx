@@ -99,7 +99,7 @@ function CardExample() {
         <CardFooter>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button>
+              <Button data-tracking-id="showcase-show-dialog-button">
                 <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} data-icon="inline-start" />
                 Show Dialog
               </Button>
@@ -116,8 +116,8 @@ function CardExample() {
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Don&apos;t allow</AlertDialogCancel>
-                <AlertDialogAction>Allow</AlertDialogAction>
+                <AlertDialogCancel data-tracking-id="showcase-dialog-deny-button">Don&apos;t allow</AlertDialogCancel>
+                <AlertDialogAction data-tracking-id="showcase-dialog-allow-button">Allow</AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
@@ -155,7 +155,7 @@ function FormExample() {
           <CardAction>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
+                <Button variant="ghost" size="icon" data-tracking-id="showcase-dropdown-menu-trigger">
                   <HugeiconsIcon icon={MoreVerticalCircle01Icon} strokeWidth={2} />
                   <span className="sr-only">More options</span>
                 </Button>
@@ -415,12 +415,13 @@ function FormExample() {
                     id="small-form-name"
                     placeholder="Enter your name"
                     required
+                    data-tracking-id="showcase-form-name-input"
                   />
                 </Field>
                 <Field>
                   <FieldLabel htmlFor="small-form-role">Role</FieldLabel>
                   <Select defaultValue="">
-                    <SelectTrigger id="small-form-role">
+                    <SelectTrigger id="small-form-role" data-tracking-id="showcase-form-role-select">
                       <SelectValue placeholder="Select a role" />
                     </SelectTrigger>
                     <SelectContent>
@@ -443,6 +444,7 @@ function FormExample() {
                     id="small-form-framework"
                     placeholder="Select a framework"
                     required
+                    data-tracking-id="showcase-form-framework-combobox"
                   />
                   <ComboboxContent>
                     <ComboboxEmpty>No frameworks found.</ComboboxEmpty>
@@ -461,11 +463,12 @@ function FormExample() {
                 <Textarea
                   id="small-form-comments"
                   placeholder="Add any additional comments"
+                  data-tracking-id="showcase-form-comments-input"
                 />
               </Field>
               <Field orientation="horizontal">
-                <Button type="submit">Submit</Button>
-                <Button variant="outline" type="button">
+                <Button type="submit" data-tracking-id="showcase-form-submit-button">Submit</Button>
+                <Button variant="outline" type="button" data-tracking-id="showcase-form-cancel-button">
                   Cancel
                 </Button>
               </Field>

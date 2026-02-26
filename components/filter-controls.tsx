@@ -25,7 +25,7 @@ export function FilterControls({ filters, onChange }: FilterControlsProps) {
           onChange({ sortBy: value as FilterOptions['sortBy'] })
         }}
       >
-        <SelectTrigger className="w-[180px]">
+        <SelectTrigger className="w-[180px]" data-tracking-id="sort-bookmarks-select">
           <SelectValue placeholder="Sort by..." />
         </SelectTrigger>
         <SelectContent>
@@ -45,6 +45,7 @@ export function FilterControls({ filters, onChange }: FilterControlsProps) {
           })
           onChange({ favoriteOnly: !filters.favoriteOnly })
         }}
+        data-tracking-id="favorites-filter-button"
       > 
         <HugeiconsIcon
           icon={StarIcon}

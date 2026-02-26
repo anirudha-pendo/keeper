@@ -43,6 +43,7 @@ export function SearchBar({ value, onChange, placeholder = 'Search bookmarks...'
         onChange={(e) => setInputValue(e.target.value)}
         placeholder={placeholder}
         className="pl-9"
+        data-tracking-id="search-bookmarks-input"
       />
     </div>
   )

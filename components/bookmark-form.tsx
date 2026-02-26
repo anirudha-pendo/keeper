@@ -157,6 +157,7 @@ export function BookmarkForm({ isOpen, onClose, username, bookmark }: BookmarkFo
                 onChange={(e) => setFormData({ ...formData, url: e.target.value })}
                 placeholder="https://example.com"
                 type="url"
+                data-tracking-id="bookmark-form-url-input"
               />
             </Field>
 
@@ -166,6 +167,7 @@ export function BookmarkForm({ isOpen, onClose, username, bookmark }: BookmarkFo
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 placeholder="My Bookmark"
+                data-tracking-id="bookmark-form-title-input"
               />
             </Field>
 
@@ -176,6 +178,7 @@ export function BookmarkForm({ isOpen, onClose, username, bookmark }: BookmarkFo
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="Optional description..."
                 rows={3}
+                data-tracking-id="bookmark-form-description-input"
               />
             </Field>
 
@@ -185,7 +188,7 @@ export function BookmarkForm({ isOpen, onClose, username, bookmark }: BookmarkFo
                 value={formData.priority.toString()}
                 onValueChange={(value) => setFormData({ ...formData, priority: parseInt(value) as 0 | 1 | 2 | 3 | 4 | 5 })}
               >
-                <SelectTrigger>
+                <SelectTrigger data-tracking-id="bookmark-form-priority-select">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -207,6 +210,7 @@ export function BookmarkForm({ isOpen, onClose, username, bookmark }: BookmarkFo
                   checked={formData.isFavorite}
                   onChange={(e) => setFormData({ ...formData, isFavorite: e.target.checked })}
                   className="h-4 w-4 rounded border-border"
+                  data-tracking-id="bookmark-form-favorite-checkbox"
                 />
                 <FieldLabel htmlFor="favorite" className="mb-0 cursor-pointer">
                   Mark as favorite
@@ -221,8 +225,8 @@ export function BookmarkForm({ isOpen, onClose, username, bookmark }: BookmarkFo
         </div>
 
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={isSubmitting}>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={handleSubmit} disabled={isSubmitting}>
+          <AlertDialogCancel disabled={isSubmitting} data-tracking-id="bookmark-form-cancel-button">Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={handleSubmit} disabled={isSubmitting} data-tracking-id="bookmark-form-submit-button">
             {isSubmitting ? 'Saving...' : bookmark ? 'Update' : 'Create'}
           </AlertDialogAction>
         </AlertDialogFooter>

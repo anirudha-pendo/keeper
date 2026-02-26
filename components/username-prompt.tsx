@@ -71,6 +71,7 @@ export function UsernamePrompt({ isOpen, onSubmit }: UsernamePromptProps) {
               onKeyDown={handleKeyDown}
               placeholder="Enter username"
               autoFocus
+              data-tracking-id="username-input"
             />
             {error && (
               <FieldDescription className="text-destructive">
@@ -86,7 +87,7 @@ export function UsernamePrompt({ isOpen, onSubmit }: UsernamePromptProps) {
         </FieldGroup>
 
         <AlertDialogFooter>
-          <AlertDialogAction onClick={handleSubmit}>
+          <AlertDialogAction onClick={handleSubmit} data-tracking-id="username-submit-button">
             Continue
           </AlertDialogAction>
         </AlertDialogFooter>

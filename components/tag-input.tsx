@@ -45,6 +45,7 @@ export function TagInput({ tags, onChange, placeholder = 'Add tags...' }: TagInp
         onKeyDown={handleKeyDown}
         onBlur={addTag}
         placeholder={placeholder}
+        data-tracking-id="tag-input"
       />
       {tags.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
@@ -56,6 +57,7 @@ export function TagInput({ tags, onChange, placeholder = 'Add tags...' }: TagInp
                 size="sm"
                 className="h-4 w-4 p-0 ml-1.5 hover:bg-transparent"
                 onClick={() => removeTag(tag)}
+                data-tracking-id="tag-remove-button"
               >
                 <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} className="h-3 w-3" />
               </Button>

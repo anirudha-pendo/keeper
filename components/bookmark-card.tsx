@@ -154,6 +154,7 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
                     target="_blank"
                     rel="noopener noreferrer"
                     className="hover:text-primary transition-colors"
+                    data-tracking-id="bookmark-title-link"
                   >
                     {bookmark.title}
                   </a>
@@ -163,6 +164,7 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-[10px] text-muted-foreground hover:text-foreground transition-colors truncate block"
+                  data-tracking-id="bookmark-domain-link"
                 >
                   {new URL(bookmark.url).hostname}
                 </a>
@@ -176,6 +178,7 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
                 size="sm"
                 className="h-7 w-7 p-0 opacity-60 hover:opacity-100"
                 onClick={handleToggleFavorite}
+                data-tracking-id="bookmark-favorite-button"
               >
                 <HugeiconsIcon
                   icon={StarIcon}
@@ -186,7 +189,7 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0 opacity-60 hover:opacity-100">
+                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0 opacity-60 hover:opacity-100" data-tracking-id="bookmark-actions-menu-trigger">
                     <HugeiconsIcon icon={MoreVerticalIcon} strokeWidth={2} />
                   </Button>
                 </DropdownMenuTrigger>
@@ -199,7 +202,7 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
                       bookmark_age_days: getBookmarkAgeDays(),
                     })
                     window.open(bookmark.url, '_blank')
-                  }}>
+                  }} data-tracking-id="bookmark-open-action">
                     <HugeiconsIcon icon={ExternalLink} strokeWidth={2} className="mr-2 h-4 w-4" />
                     Open
                   </DropdownMenuItem>
@@ -209,7 +212,7 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
                       bookmark_age_days: getBookmarkAgeDays(),
                     })
                     onEdit(bookmark)
-                  }}>
+                  }} data-tracking-id="bookmark-edit-action">
                     <HugeiconsIcon icon={EditIcon} strokeWidth={2} className="mr-2 h-4 w-4" />
                     Edit
                   </DropdownMenuItem>
@@ -219,7 +222,7 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
                       bookmark_id: bookmark.id,
                     })
                     setShowDeleteDialog(true)
-                  }} className="text-destructive">
+                  }} className="text-destructive" data-tracking-id="bookmark-delete-action">
                     <HugeiconsIcon icon={DeleteIcon} strokeWidth={2} className="mr-2 h-4 w-4" />
                     Delete
                   </DropdownMenuItem>
@@ -265,8 +268,8 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogCancel data-tracking-id="bookmark-delete-cancel-button">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90" data-tracking-id="bookmark-delete-confirm-button">
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>

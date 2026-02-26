@@ -131,7 +131,7 @@ export default function Page() {
                 @{username} · {bookmarks.length} bookmark{bookmarks.length !== 1 ? 's' : ''}
               </p>
             </div>
-            <Button onClick={handleAddNew} size="sm">
+            <Button onClick={handleAddNew} size="sm" data-tracking-id="add-new-bookmark-button">
               <HugeiconsIcon icon={Add01Icon} strokeWidth={2} className="mr-1.5 h-4 w-4" />
               New
             </Button>
