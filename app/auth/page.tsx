@@ -33,6 +33,10 @@ export default function AuthPage() {
       return
     }
 
+    window.pendo?.track("user_signed_up", {
+      username_length: trimmed.length,
+    })
+
     setUsername(trimmed)
     router.replace('/dashboard')
   }
