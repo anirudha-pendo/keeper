@@ -1,6 +1,3 @@
-'use server'
-
-import { revalidatePath } from 'next/cache'
 import {
   getUserBookmarks,
   addBookmark,
@@ -54,7 +51,6 @@ export async function createBookmark(username: string, data: BookmarkInput): Pro
     }
 
     await addBookmark(username, bookmark)
-    revalidatePath('/bookmarks')
     return { success: true, data: bookmark }
   } catch (error: any) {
     return { success: false, error: error.message }
@@ -76,7 +72,6 @@ export async function updateBookmark(username: string, id: string, data: Partial
     }
 
     await dbUpdateBookmark(username, id, updates)
-    revalidatePath('/bookmarks')
     return { success: true }
   } catch (error: any) {
     return { success: false, error: error.message }
@@ -86,7 +81,6 @@ export async function updateBookmark(username: string, id: string, data: Partial
 export async function deleteBookmark(username: string, id: string): Promise<ServerActionResult<void>> {
   try {
     await dbDeleteBookmark(username, id)
-    revalidatePath('/bookmarks')
     return { success: true }
   } catch (error: any) {
     return { success: false, error: error.message }
@@ -96,7 +90,6 @@ export async function deleteBookmark(username: string, id: string): Promise<Serv
 export async function toggleFavorite(username: string, id: string, currentState: boolean): Promise<ServerActionResult<void>> {
   try {
     await dbUpdateBookmark(username, id, { isFavorite: !currentState })
-    revalidatePath('/bookmarks')
     return { success: true }
   } catch (error: any) {
     return { success: false, error: error.message }
@@ -189,7 +182,6 @@ export async function importBookmarks(username: string, inputs: BookmarkInput[])
 
     if (newBookmarks.length > 0) {
       await bulkAddBookmarks(username, newBookmarks)
-      revalidatePath('/bookmarks')
     }
 
     return { success: true, data: { imported: newBookmarks.length, skipped } }
@@ -219,7 +211,6 @@ export async function createCollection(username: string, data: { name: string; d
     }
 
     await dbAddCollection(username, collection)
-    revalidatePath('/collections')
     return { success: true, data: collection }
   } catch (error: any) {
     return { success: false, error: error.message }
@@ -229,7 +220,6 @@ export async function createCollection(username: string, data: { name: string; d
 export async function updateCollection(username: string, id: string, data: { name?: string; description?: string; color?: string }): Promise<ServerActionResult<void>> {
   try {
     await dbUpdateCollection(username, id, data)
-    revalidatePath('/collections')
     return { success: true }
   } catch (error: any) {
     return { success: false, error: error.message }
@@ -239,8 +229,6 @@ export async function updateCollection(username: string, id: string, data: { nam
 export async function deleteCollection(username: string, id: string): Promise<ServerActionResult<void>> {
   try {
     await dbDeleteCollection(username, id)
-    revalidatePath('/collections')
-    revalidatePath('/bookmarks')
     return { success: true }
   } catch (error: any) {
     return { success: false, error: error.message }

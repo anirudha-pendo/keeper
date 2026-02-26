@@ -2,13 +2,22 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useUsername } from '@/hooks/use-username'
 import { getDashboardStats } from '@/app/actions/bookmarks'
 import { StatsCard } from '@/components/stats-card'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { HugeiconsIcon } from '@hugeicons/react'
+import {
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+} from '@/components/ui/command'
 import {
   Bookmark01Icon,
   StarIcon,
@@ -17,6 +26,8 @@ import {
   Add01Icon,
   ArrowRight01Icon,
   Upload04Icon,
+  Search01Icon,
+  Settings01Icon,
 } from '@hugeicons/core-free-icons'
 import type { Bookmark } from '@/lib/types'
 
@@ -31,14 +42,27 @@ interface DashboardData {
 
 export default function DashboardPage() {
   const { username } = useUsername()
+  const router = useRouter()
   const [stats, setStats] = useState<DashboardData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [commandOpen, setCommandOpen] = useState(false)
 
   useEffect(() => {
     if (username) {
       loadStats()
     }
   }, [username])
+
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault()
+        setCommandOpen((open) => !open)
+      }
+    }
+    document.addEventListener('keydown', down)
+    return () => document.removeEventListener('keydown', down)
+  }, [])
 
   const loadStats = async () => {
     if (!username) return
@@ -164,31 +188,77 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm">Quick Actions</CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="flex flex-col gap-2">
-                    <Link href="/bookmarks" data-tracking-id="dashboard-quick-action-add-bookmark">
-                      <Button variant="outline" size="sm" className="w-full justify-start text-xs">
-                        <HugeiconsIcon icon={Add01Icon} strokeWidth={2} className="mr-2 h-3.5 w-3.5" />
-                        Add Bookmark
-                      </Button>
-                    </Link>
-                    <Link href="/settings" data-tracking-id="dashboard-quick-action-import">
-                      <Button variant="outline" size="sm" className="w-full justify-start text-xs">
-                        <HugeiconsIcon icon={Upload04Icon} strokeWidth={2} className="mr-2 h-3.5 w-3.5" />
-                        Import Bookmarks
-                      </Button>
-                    </Link>
-                  </div>
+              <Card
+                className="cursor-pointer hover:border-primary/50 transition-colors"
+                onClick={() => setCommandOpen(true)}
+                data-tracking-id="dashboard-quick-actions-trigger"
+              >
+                <CardContent className="px-3 py-2.5 flex items-center gap-2">
+                  <HugeiconsIcon icon={Search01Icon} strokeWidth={2} className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground flex-1">Quick actions...</span>
+                  <kbd className="pointer-events-none inline-flex h-5 items-center gap-0.5 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground select-none">
+                    <span className="text-xs">⌘</span>K
+                  </kbd>
                 </CardContent>
               </Card>
             </div>
           </div>
         </div>
       ) : null}
+
+      <CommandDialog open={commandOpen} onOpenChange={setCommandOpen}>
+        <CommandInput placeholder="Type a command or search..." />
+        <CommandList>
+          <CommandEmpty>No results found.</CommandEmpty>
+          <CommandGroup heading="Actions">
+            <CommandItem
+              onSelect={() => { setCommandOpen(false); router.push('/bookmarks') }}
+              data-tracking-id="command-palette-add-bookmark"
+            >
+              <HugeiconsIcon icon={Add01Icon} strokeWidth={2} className="h-3.5 w-3.5" />
+              <span>Add Bookmark</span>
+            </CommandItem>
+            <CommandItem
+              onSelect={() => { setCommandOpen(false); router.push('/settings') }}
+              data-tracking-id="command-palette-import"
+            >
+              <HugeiconsIcon icon={Upload04Icon} strokeWidth={2} className="h-3.5 w-3.5" />
+              <span>Import Bookmarks</span>
+            </CommandItem>
+          </CommandGroup>
+          <CommandSeparator />
+          <CommandGroup heading="Navigate">
+            <CommandItem
+              onSelect={() => { setCommandOpen(false); router.push('/bookmarks') }}
+              data-tracking-id="command-palette-nav-bookmarks"
+            >
+              <HugeiconsIcon icon={Bookmark01Icon} strokeWidth={2} className="h-3.5 w-3.5" />
+              <span>Bookmarks</span>
+            </CommandItem>
+            <CommandItem
+              onSelect={() => { setCommandOpen(false); router.push('/collections') }}
+              data-tracking-id="command-palette-nav-collections"
+            >
+              <HugeiconsIcon icon={Folder01Icon} strokeWidth={2} className="h-3.5 w-3.5" />
+              <span>Collections</span>
+            </CommandItem>
+            <CommandItem
+              onSelect={() => { setCommandOpen(false); router.push('/tags') }}
+              data-tracking-id="command-palette-nav-tags"
+            >
+              <HugeiconsIcon icon={Tag01Icon} strokeWidth={2} className="h-3.5 w-3.5" />
+              <span>Tags</span>
+            </CommandItem>
+            <CommandItem
+              onSelect={() => { setCommandOpen(false); router.push('/settings') }}
+              data-tracking-id="command-palette-nav-settings"
+            >
+              <HugeiconsIcon icon={Settings01Icon} strokeWidth={2} className="h-3.5 w-3.5" />
+              <span>Settings</span>
+            </CommandItem>
+          </CommandGroup>
+        </CommandList>
+      </CommandDialog>
     </div>
   )
 }

@@ -1,8 +1,6 @@
-import fs from 'fs/promises'
-import path from 'path'
 import type { Bookmark, BookmarksData, Collection, User } from './types'
 
-const DB_PATH = path.join(process.cwd(), 'data', 'bookmarks.json')
+const STORAGE_KEY = 'keeper-bookmarks-data'
 
 const DEFAULT_DATA: BookmarksData = {
   users: {},
@@ -12,46 +10,19 @@ const DEFAULT_DATA: BookmarksData = {
   },
 }
 
-async function ensureDataDir() {
-  await fs.mkdir(path.dirname(DB_PATH), { recursive: true })
-}
-
-async function readBookmarksFile(): Promise<BookmarksData> {
+function readData(): BookmarksData {
   try {
-    const content = await fs.readFile(DB_PATH, 'utf-8')
-    return JSON.parse(content)
-  } catch (error: any) {
-    if (error.code === 'ENOENT') {
-      // File doesn't exist, create with default structure
-      await ensureDataDir()
-      await writeBookmarksFile(DEFAULT_DATA)
-      return DEFAULT_DATA
-    }
-
-    // Corrupted JSON - backup and recreate
-    if (error instanceof SyntaxError) {
-      const timestamp = Date.now()
-      const backupPath = `${DB_PATH}.backup.${timestamp}`
-      try {
-        await fs.copyFile(DB_PATH, backupPath)
-        console.warn(`Corrupted bookmarks.json backed up to ${backupPath}`)
-      } catch (backupError) {
-        console.error('Failed to backup corrupted file:', backupError)
-      }
-      await writeBookmarksFile(DEFAULT_DATA)
-      return DEFAULT_DATA
-    }
-
-    throw error
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return structuredClone(DEFAULT_DATA)
+    return JSON.parse(raw)
+  } catch {
+    return structuredClone(DEFAULT_DATA)
   }
 }
 
-async function writeBookmarksFile(data: BookmarksData): Promise<void> {
-  await ensureDataDir()
-  const tempPath = `${DB_PATH}.tmp`
+function writeData(data: BookmarksData): void {
   data.metadata.lastModified = new Date().toISOString()
-  await fs.writeFile(tempPath, JSON.stringify(data, null, 2), 'utf-8')
-  await fs.rename(tempPath, DB_PATH) // Atomic operation
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
 }
 
 function ensureUserCollections(user: User): void {
@@ -61,16 +32,14 @@ function ensureUserCollections(user: User): void {
 }
 
 export async function getUserBookmarks(username: string): Promise<Bookmark[]> {
-  const data = await readBookmarksFile()
+  const data = readData()
   const user = data.users[username]
-  if (!user) {
-    return []
-  }
+  if (!user) return []
   return Object.values(user.bookmarks)
 }
 
 export async function addBookmark(username: string, bookmark: Bookmark): Promise<void> {
-  const data = await readBookmarksFile()
+  const data = readData()
 
   if (!data.users[username]) {
     data.users[username] = {
@@ -82,11 +51,11 @@ export async function addBookmark(username: string, bookmark: Bookmark): Promise
   }
 
   data.users[username].bookmarks[bookmark.id] = bookmark
-  await writeBookmarksFile(data)
+  writeData(data)
 }
 
 export async function updateBookmark(username: string, id: string, updates: Partial<Bookmark>): Promise<void> {
-  const data = await readBookmarksFile()
+  const data = readData()
 
   if (!data.users[username]?.bookmarks[id]) {
     throw new Error('Bookmark not found')
@@ -95,29 +64,29 @@ export async function updateBookmark(username: string, id: string, updates: Part
   data.users[username].bookmarks[id] = {
     ...data.users[username].bookmarks[id],
     ...updates,
-    id, // Ensure id cannot be changed
+    id,
     updatedAt: new Date().toISOString(),
   }
 
-  await writeBookmarksFile(data)
+  writeData(data)
 }
 
 export async function deleteBookmark(username: string, id: string): Promise<void> {
-  const data = await readBookmarksFile()
+  const data = readData()
 
   if (!data.users[username]?.bookmarks[id]) {
     throw new Error('Bookmark not found')
   }
 
   delete data.users[username].bookmarks[id]
-  await writeBookmarksFile(data)
+  writeData(data)
 }
 
 export async function clearUserBookmarks(username: string): Promise<void> {
-  const data = await readBookmarksFile()
+  const data = readData()
   if (data.users[username]) {
     data.users[username].bookmarks = {}
-    await writeBookmarksFile(data)
+    writeData(data)
   }
 }
 
@@ -147,7 +116,7 @@ export async function findBookmarkByUrl(username: string, url: string): Promise<
 }
 
 export async function bulkAddBookmarks(username: string, bookmarks: Bookmark[]): Promise<number> {
-  const data = await readBookmarksFile()
+  const data = readData()
 
   if (!data.users[username]) {
     data.users[username] = {
@@ -164,13 +133,13 @@ export async function bulkAddBookmarks(username: string, bookmarks: Bookmark[]):
     added++
   }
 
-  await writeBookmarksFile(data)
+  writeData(data)
   return added
 }
 
 // Collection CRUD
 export async function getUserCollections(username: string): Promise<Collection[]> {
-  const data = await readBookmarksFile()
+  const data = readData()
   const user = data.users[username]
   if (!user) return []
   ensureUserCollections(user)
@@ -178,7 +147,7 @@ export async function getUserCollections(username: string): Promise<Collection[]
 }
 
 export async function addCollection(username: string, collection: Collection): Promise<void> {
-  const data = await readBookmarksFile()
+  const data = readData()
 
   if (!data.users[username]) {
     data.users[username] = {
@@ -191,11 +160,11 @@ export async function addCollection(username: string, collection: Collection): P
 
   ensureUserCollections(data.users[username])
   data.users[username].collections[collection.id] = collection
-  await writeBookmarksFile(data)
+  writeData(data)
 }
 
 export async function updateCollection(username: string, id: string, updates: Partial<Collection>): Promise<void> {
-  const data = await readBookmarksFile()
+  const data = readData()
   ensureUserCollections(data.users[username])
 
   if (!data.users[username]?.collections[id]) {
@@ -208,11 +177,11 @@ export async function updateCollection(username: string, id: string, updates: Pa
     id,
   }
 
-  await writeBookmarksFile(data)
+  writeData(data)
 }
 
 export async function deleteCollection(username: string, id: string): Promise<void> {
-  const data = await readBookmarksFile()
+  const data = readData()
   ensureUserCollections(data.users[username])
 
   if (!data.users[username]?.collections[id]) {
@@ -229,5 +198,5 @@ export async function deleteCollection(username: string, id: string): Promise<vo
     }
   }
 
-  await writeBookmarksFile(data)
+  writeData(data)
 }

@@ -14,13 +14,13 @@ interface StatsCardProps {
 
 export function StatsCard({ icon, label, count, href }: StatsCardProps) {
   const content = (
-    <Card className={href ? 'hover:border-primary/50 transition-colors cursor-pointer' : ''}>
-      <CardContent className="p-4 flex items-center gap-3">
-        <div className="w-9 h-9 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
-          <HugeiconsIcon icon={icon} strokeWidth={2} className="h-4.5 w-4.5 text-primary" />
+    <Card className={href ? 'hover:border-primary/50 transition-colors cursor-pointer p-0' : ''}>
+      <CardContent className="p-2 flex items-center gap-2.5">
+        <div className="w-7 h-7 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+          <HugeiconsIcon icon={icon} strokeWidth={2} className="h-3.5 w-3.5 text-primary" />
         </div>
-        <div>
-          <p className="text-2xl font-bold">{count}</p>
+        <div className="flex items-baseline gap-1.5">
+          <p className="text-lg font-bold leading-none">{count}</p>
           <p className="text-[10px] text-muted-foreground">{label}</p>
         </div>
       </CardContent>
