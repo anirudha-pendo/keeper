@@ -10,6 +10,7 @@ import {
   addCollection as dbAddCollection,
   updateCollection as dbUpdateCollection,
   deleteCollection as dbDeleteCollection,
+  getUserCreatedAt,
 } from '@/lib/bookmarks-db'
 import type { Bookmark, BookmarkInput, Collection, ServerActionResult } from '@/lib/types'
 
@@ -279,6 +280,15 @@ export async function getDashboardStats(username: string): Promise<ServerActionR
         topTags,
       },
     }
+  } catch (error: any) {
+    return { success: false, error: error.message }
+  }
+}
+
+export async function getVisitorMetadata(username: string): Promise<ServerActionResult<{ createdAt: string | null }>> {
+  try {
+    const createdAt = await getUserCreatedAt(username)
+    return { success: true, data: { createdAt } }
   } catch (error: any) {
     return { success: false, error: error.message }
   }

@@ -180,6 +180,11 @@ export async function updateCollection(username: string, id: string, updates: Pa
   writeData(data)
 }
 
+export async function getUserCreatedAt(username: string): Promise<string | null> {
+  const data = await readBookmarksFile()
+  return data.users[username]?.createdAt ?? null
+}
+
 export async function deleteCollection(username: string, id: string): Promise<void> {
   const data = readData()
   ensureUserCollections(data.users[username])
