@@ -41,6 +41,9 @@ export default function SettingsPage() {
       a.download = `keeper-${username}-bookmarks.json`
       a.click()
       URL.revokeObjectURL(url)
+      pendo.track("bookmarks_exported", {
+        bookmark_count: result.data.length
+      })
     }
   }
 
@@ -90,6 +93,12 @@ export default function SettingsPage() {
       setImportBookmarksList(parsed)
       setImportDuplicates(duplicates)
       setShowImportDialog(true)
+      pendo.track("import_file_parsed", {
+        file_format: format,
+        bookmarks_found: parsed.length,
+        duplicates_found: duplicates.size,
+        new_bookmarks_count: parsed.length - duplicates.size
+      })
     } catch (err: any) {
       toast.error(`Failed to parse file: ${err.message}`)
     }
@@ -99,6 +108,11 @@ export default function SettingsPage() {
     if (!username) return
     const result = await importBookmarks(username, bookmarks)
     if (result.success && result.data) {
+      pendo.track("bookmarks_imported", {
+        imported_count: result.data.imported,
+        total_in_file: importBookmarksList.length,
+        duplicate_count: importDuplicates.size
+      })
       toast.success(`Imported ${result.data.imported} bookmark${result.data.imported !== 1 ? 's' : ''}`)
       setShowImportDialog(false)
     } else {
@@ -107,6 +121,7 @@ export default function SettingsPage() {
   }
 
   const handleLogout = () => {
+    pendo.track("user_logged_out")
     clearUsername()
     router.replace('/auth')
   }
@@ -147,7 +162,13 @@ export default function SettingsPage() {
                   key={option.value}
                   variant={theme === option.value ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => setTheme(option.value)}
+                  onClick={() => {
+                    pendo.track("theme_changed", {
+                      new_theme: option.value,
+                      previous_theme: theme
+                    })
+                    setTheme(option.value)
+                  }}
                   className={cn(
                     'text-xs',
                     theme !== option.value && 'text-muted-foreground'
