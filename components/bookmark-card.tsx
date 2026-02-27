@@ -42,12 +42,25 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
     const result = await toggleFavorite(username, bookmark.id, bookmark.isFavorite)
     if (!result.success) {
       setIsFavorite(!newState)
+    } else {
+      window.pendo?.track('bookmark_favorite_toggled', {
+        new_state: newState,
+        url_domain: new URL(bookmark.url).hostname,
+      })
     }
   }
 
   const handleDelete = async () => {
     const result = await deleteBookmark(username, bookmark.id)
     if (result.success) {
+      window.pendo?.track('bookmark_deleted', {
+        had_tags: bookmark.tags.length > 0,
+        tags_count: bookmark.tags.length,
+        was_favorite: bookmark.isFavorite,
+        priority: bookmark.priority,
+        had_collection: !!bookmark.collectionId,
+        url_domain: new URL(bookmark.url).hostname,
+      })
       setShowDeleteDialog(false)
       onDelete?.()
     }
@@ -185,6 +198,9 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => {
                     navigator.clipboard.writeText(bookmark.url)
+                    window.pendo?.track('bookmark_link_copied', {
+                      url_domain: new URL(bookmark.url).hostname,
+                    })
                     toast.success('Link copied to clipboard')
                   }} data-tracking-id="bookmark-copy-link-action">
                     <HugeiconsIcon icon={Copy01Icon} strokeWidth={2} className="mr-2 h-4 w-4" />
