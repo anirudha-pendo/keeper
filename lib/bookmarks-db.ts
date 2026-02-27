@@ -181,6 +181,7 @@ export async function addCollection(username: string, collection: Collection): P
   const data = await readBookmarksFile()
 
   if (!data.users[username]) {
+    
     data.users[username] = {
       username,
       createdAt: new Date().toISOString(),
