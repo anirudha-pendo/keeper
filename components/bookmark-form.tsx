@@ -109,6 +109,26 @@ export function BookmarkForm({ isOpen, onClose, username, bookmark, collections 
       }
 
       if (result.success) {
+        const urlDomain = (() => { try { return new URL(formData.url).hostname } catch { return '' } })()
+        if (bookmark) {
+          window.pendo?.track('bookmark_updated', {
+            tags_count: formData.tags.length,
+            has_description: !!formData.description?.trim(),
+            priority: formData.priority,
+            is_favorite: formData.isFavorite,
+            has_collection: !!formData.collectionId,
+            url_domain: urlDomain,
+          })
+        } else {
+          window.pendo?.track('bookmark_created', {
+            tags_count: formData.tags.length,
+            has_description: !!formData.description?.trim(),
+            priority: formData.priority,
+            is_favorite: formData.isFavorite,
+            has_collection: !!formData.collectionId,
+            url_domain: urlDomain,
+          })
+        }
         onClose()
       } else {
         setError(result.error || 'Failed to save bookmark')

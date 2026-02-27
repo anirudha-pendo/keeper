@@ -27,6 +27,7 @@ export default function SettingsPage() {
   const [showImportDialog, setShowImportDialog] = useState(false)
   const [importBookmarksList, setImportBookmarksList] = useState<BookmarkInput[]>([])
   const [importDuplicates, setImportDuplicates] = useState<Set<string>>(new Set())
+  const [importFormat, setImportFormat] = useState<'json' | 'html'>('json')
   const jsonFileRef = useRef<HTMLInputElement>(null)
   const htmlFileRef = useRef<HTMLInputElement>(null)
 
@@ -41,6 +42,10 @@ export default function SettingsPage() {
       a.download = `keeper-${username}-bookmarks.json`
       a.click()
       URL.revokeObjectURL(url)
+      window.pendo?.track('bookmarks_exported', {
+        bookmark_count: result.data.length,
+        file_format: 'json',
+      })
     }
   }
 
@@ -87,9 +92,16 @@ export default function SettingsPage() {
         }
       })
 
+      setImportFormat(format)
       setImportBookmarksList(parsed)
       setImportDuplicates(duplicates)
       setShowImportDialog(true)
+      window.pendo?.track('import_file_parsed', {
+        format: format,
+        total_parsed: parsed.length,
+        new_count: parsed.length - duplicates.size,
+        duplicate_count: duplicates.size,
+      })
     } catch (err: any) {
       toast.error(`Failed to parse file: ${err.message}`)
     }
@@ -99,6 +111,12 @@ export default function SettingsPage() {
     if (!username) return
     const result = await importBookmarks(username, bookmarks)
     if (result.success && result.data) {
+      window.pendo?.track('bookmarks_import_completed', {
+        format: importFormat,
+        imported_count: result.data.imported,
+        skipped_count: importBookmarksList.length - bookmarks.length,
+        total_in_file: importBookmarksList.length,
+      })
       toast.success(`Imported ${result.data.imported} bookmark${result.data.imported !== 1 ? 's' : ''}`)
       setShowImportDialog(false)
     } else {
@@ -107,6 +125,7 @@ export default function SettingsPage() {
   }
 
   const handleLogout = () => {
+    window.pendo?.track('user_logged_out')
     clearUsername()
     router.replace('/auth')
   }

@@ -92,6 +92,19 @@ export default function BookmarksPage() {
     setFilters((prev) => ({ ...prev, ...updates }))
   }
 
+  // Track search queries after SearchBar debounce settles
+  useEffect(() => {
+    if (filters.query) {
+      window.pendo?.track('bookmarks_searched', {
+        query: filters.query.substring(0, 100),
+        results_count: filteredBookmarks.length,
+        total_bookmarks: bookmarks.length,
+        has_active_filters: filters.favoriteOnly || (filters.selectedTags?.length ?? 0) > 0 || !!filters.collectionId,
+      })
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.query])
+
   if (!username) return null
 
   return (
