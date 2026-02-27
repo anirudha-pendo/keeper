@@ -34,6 +34,12 @@ export default function SettingsPage() {
     if (!username) return
     const result = await getBookmarks(username)
     if (result.success && result.data) {
+      if (typeof pendo !== 'undefined') {
+        pendo.track("bookmarks_exported", {
+          bookmarkCount: result.data.length,
+          fileFormat: "json",
+        })
+      }
       const blob = new Blob([JSON.stringify(result.data, null, 2)], { type: 'application/json' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -87,6 +93,14 @@ export default function SettingsPage() {
         }
       })
 
+      if (typeof pendo !== 'undefined') {
+        pendo.track("import_file_parsed", {
+          fileFormat: format,
+          bookmarksFound: parsed.length,
+          duplicatesFound: duplicates.size,
+          newBookmarks: parsed.length - duplicates.size,
+        })
+      }
       setImportBookmarksList(parsed)
       setImportDuplicates(duplicates)
       setShowImportDialog(true)
@@ -99,6 +113,14 @@ export default function SettingsPage() {
     if (!username) return
     const result = await importBookmarks(username, bookmarks)
     if (result.success && result.data) {
+      if (typeof pendo !== 'undefined') {
+        pendo.track("bookmarks_import_completed", {
+          importedCount: result.data.imported,
+          skippedCount: result.data.skipped || 0,
+          totalParsed: bookmarks.length,
+          duplicateCount: result.data.duplicates || 0,
+        })
+      }
       toast.success(`Imported ${result.data.imported} bookmark${result.data.imported !== 1 ? 's' : ''}`)
       setShowImportDialog(false)
     } else {
@@ -107,6 +129,9 @@ export default function SettingsPage() {
   }
 
   const handleLogout = () => {
+    if (typeof pendo !== 'undefined') {
+      pendo.track("user_logged_out")
+    }
     clearUsername()
     router.replace('/auth')
   }
@@ -147,7 +172,14 @@ export default function SettingsPage() {
                   key={option.value}
                   variant={theme === option.value ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => setTheme(option.value)}
+                  onClick={() => {
+                    setTheme(option.value)
+                    if (typeof pendo !== 'undefined') {
+                      pendo.track("theme_changed", {
+                        selectedTheme: option.value,
+                      })
+                    }
+                  }}
                   className={cn(
                     'text-xs',
                     theme !== option.value && 'text-muted-foreground'
