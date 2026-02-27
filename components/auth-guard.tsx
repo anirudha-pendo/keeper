@@ -16,6 +16,16 @@ export function AuthGuard({ children }: AuthGuardProps) {
     if (!isLoading && !username) {
       router.replace('/auth')
     }
+    if (!isLoading && username) {
+      if (typeof pendo !== 'undefined') {
+        pendo.identify({
+          visitor: {
+            id: username,
+            full_name: username,
+          },
+        })
+      }
+    }
   }, [isLoading, username, router])
 
   if (isLoading) {
