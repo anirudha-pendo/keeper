@@ -34,6 +34,10 @@ export default function SettingsPage() {
     if (!username) return
     const result = await getBookmarks(username)
     if (result.success && result.data) {
+      ;(window as any).pendo?.track("bookmarks_exported", {
+        bookmark_count: result.data.length,
+        file_format: "json"
+      })
       const blob = new Blob([JSON.stringify(result.data, null, 2)], { type: 'application/json' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -87,6 +91,11 @@ export default function SettingsPage() {
         }
       })
 
+      ;(window as any).pendo?.track("import_file_parsed", {
+        file_format: format,
+        bookmark_count: parsed.length,
+        duplicate_count: duplicates.size
+      })
       setImportBookmarksList(parsed)
       setImportDuplicates(duplicates)
       setShowImportDialog(true)
@@ -99,6 +108,12 @@ export default function SettingsPage() {
     if (!username) return
     const result = await importBookmarks(username, bookmarks)
     if (result.success && result.data) {
+      ;(window as any).pendo?.track("bookmarks_imported", {
+        imported_count: result.data.imported,
+        total_found: bookmarks.length,
+        skipped_count: bookmarks.length - result.data.imported,
+        duplicate_count: importDuplicates.size
+      })
       toast.success(`Imported ${result.data.imported} bookmark${result.data.imported !== 1 ? 's' : ''}`)
       setShowImportDialog(false)
     } else {
@@ -107,6 +122,7 @@ export default function SettingsPage() {
   }
 
   const handleLogout = () => {
+    ;(window as any).pendo?.track("user_logged_out")
     clearUsername()
     router.replace('/auth')
   }
@@ -147,7 +163,16 @@ export default function SettingsPage() {
                   key={option.value}
                   variant={theme === option.value ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => setTheme(option.value)}
+                  onClick={() => {
+                    const previousTheme = theme
+                    setTheme(option.value)
+                    if (option.value !== previousTheme) {
+                      ;(window as any).pendo?.track("theme_changed", {
+                        new_theme: option.value,
+                        previous_theme: previousTheme
+                      })
+                    }
+                  }}
                   className={cn(
                     'text-xs',
                     theme !== option.value && 'text-muted-foreground'
