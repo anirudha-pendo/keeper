@@ -171,6 +171,9 @@ export default function SettingsPage() {
                         new_theme: option.value,
                         previous_theme: previousTheme
                       })
+                      ;(window as any).pendo?.track("theme-toggle", {
+                        theme: option.value
+                      })
                     }
                   }}
                   className={cn(
