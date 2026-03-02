@@ -21,6 +21,11 @@ export function SearchBar({ value, onChange, placeholder = 'Search bookmarks...'
   useEffect(() => {
     const timer = setTimeout(() => {
       onChange(inputValue)
+      if (inputValue.trim()) {
+        ;(window as any).pendo?.track("bookmark_search_executed", {
+          query_length: inputValue.trim().length
+        })
+      }
     }, 300)
 
     return () => clearTimeout(timer)
