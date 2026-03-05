@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import {
   getUserBookmarks,
+  getUserCreatedAt as dbGetUserCreatedAt,
   addBookmark,
   updateBookmark as dbUpdateBookmark,
   deleteBookmark as dbDeleteBookmark,
@@ -15,6 +16,15 @@ import {
   deleteCollection as dbDeleteCollection,
 } from '@/lib/bookmarks-db'
 import type { Bookmark, BookmarkInput, Collection, ServerActionResult } from '@/lib/types'
+
+export async function getUserCreatedAt(username: string): Promise<ServerActionResult<string | null>> {
+  try {
+    const createdAt = await dbGetUserCreatedAt(username)
+    return { success: true, data: createdAt }
+  } catch (error: any) {
+    return { success: false, error: error.message }
+  }
+}
 
 export async function getBookmarks(username: string): Promise<ServerActionResult<Bookmark[]>> {
   try {
