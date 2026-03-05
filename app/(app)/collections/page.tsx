@@ -51,6 +51,13 @@ export default function CollectionsPage() {
     if (!username) return
     const result = await createCollection(username, data)
     if (result.success) {
+      if (typeof pendo !== 'undefined') {
+        pendo.track('collection_created', {
+          has_description: !!data.description?.trim(),
+          color: data.color,
+          existing_collections_count: collections.length,
+        })
+      }
       toast.success('Collection created')
       loadData()
     } else {
@@ -62,6 +69,13 @@ export default function CollectionsPage() {
     if (!username || !editingCollection) return
     const result = await updateCollection(username, editingCollection.id, data)
     if (result.success) {
+      if (typeof pendo !== 'undefined') {
+        pendo.track('collection_updated', {
+          has_description: !!data.description?.trim(),
+          color: data.color,
+          bookmark_count: getBookmarkCount(editingCollection.id),
+        })
+      }
       toast.success('Collection updated')
       loadData()
     } else {
@@ -71,8 +85,16 @@ export default function CollectionsPage() {
 
   const handleDelete = async (id: string) => {
     if (!username) return
+    const collection = collections.find((c) => c.id === id)
     const result = await deleteCollection(username, id)
     if (result.success) {
+      if (typeof pendo !== 'undefined') {
+        const ageMs = collection ? Date.now() - new Date(collection.createdAt).getTime() : 0
+        pendo.track('collection_deleted', {
+          bookmark_count: getBookmarkCount(id),
+          collection_age_days: Math.floor(ageMs / (1000 * 60 * 60 * 24)),
+        })
+      }
       toast.success('Collection deleted')
       loadData()
     }
