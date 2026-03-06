@@ -71,6 +71,13 @@ export function BookmarkForm({ isOpen, onClose, username, bookmark, collections 
         message: `A bookmark with this URL already exists: "${result.data.title}"`,
         bookmarkId: result.data.id,
       })
+      if (typeof pendo !== 'undefined') {
+        let urlDomain = ''
+        try { urlDomain = new URL(formData.url).hostname } catch {}
+        pendo.track('duplicate_bookmark_detected', {
+          url_domain: urlDomain,
+        })
+      }
     } else {
       setDuplicateWarning(null)
     }
@@ -109,6 +116,28 @@ export function BookmarkForm({ isOpen, onClose, username, bookmark, collections 
       }
 
       if (result.success) {
+        if (typeof pendo !== 'undefined') {
+          let urlDomain = ''
+          try { urlDomain = new URL(formData.url).hostname } catch {}
+          if (bookmark) {
+            pendo.track('bookmark_updated', {
+              tags_count: formData.tags.length,
+              priority: formData.priority,
+              has_collection: !!formData.collectionId,
+              is_favorite: formData.isFavorite,
+              has_description: !!formData.description?.trim(),
+            })
+          } else {
+            pendo.track('bookmark_created', {
+              url_domain: urlDomain,
+              tags_count: formData.tags.length,
+              priority: formData.priority,
+              has_collection: !!formData.collectionId,
+              is_favorite: formData.isFavorite,
+              has_description: !!formData.description?.trim(),
+            })
+          }
+        }
         onClose()
       } else {
         setError(result.error || 'Failed to save bookmark')

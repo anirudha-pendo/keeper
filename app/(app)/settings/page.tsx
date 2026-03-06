@@ -41,6 +41,12 @@ export default function SettingsPage() {
       a.download = `keeper-${username}-bookmarks.json`
       a.click()
       URL.revokeObjectURL(url)
+      if (typeof pendo !== 'undefined') {
+        pendo.track('bookmarks_exported', {
+          bookmark_count: result.data.length,
+          file_format: 'json',
+        })
+      }
     }
   }
 
@@ -87,6 +93,14 @@ export default function SettingsPage() {
         }
       })
 
+      if (typeof pendo !== 'undefined') {
+        pendo.track('bookmarks_import_file_parsed', {
+          file_format: format,
+          bookmarks_found: parsed.length,
+          duplicates_found: duplicates.size,
+          new_bookmarks_count: parsed.length - duplicates.size,
+        })
+      }
       setImportBookmarksList(parsed)
       setImportDuplicates(duplicates)
       setShowImportDialog(true)
@@ -95,11 +109,20 @@ export default function SettingsPage() {
     }
   }
 
-  const handleImportConfirm = async (bookmarks: BookmarkInput[]) => {
+  const handleImportConfirm = async (bookmarksToImport: BookmarkInput[]) => {
     if (!username) return
-    const result = await importBookmarks(username, bookmarks)
+    const result = await importBookmarks(username, bookmarksToImport)
     if (result.success && result.data) {
       toast.success(`Imported ${result.data.imported} bookmark${result.data.imported !== 1 ? 's' : ''}`)
+      if (typeof pendo !== 'undefined') {
+        pendo.track('bookmarks_import_completed', {
+          imported_count: result.data.imported,
+          skipped_count: result.data.skipped || 0,
+          total_in_file: importBookmarksList.length,
+          duplicates_count: importDuplicates.size,
+          file_format: 'json',
+        })
+      }
       setShowImportDialog(false)
     } else {
       toast.error(result.error || 'Import failed')
@@ -107,6 +130,9 @@ export default function SettingsPage() {
   }
 
   const handleLogout = () => {
+    if (typeof pendo !== 'undefined') {
+      pendo.track('user_logged_out')
+    }
     clearUsername()
     router.replace('/auth')
   }
@@ -147,7 +173,15 @@ export default function SettingsPage() {
                   key={option.value}
                   variant={theme === option.value ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => setTheme(option.value)}
+                  onClick={() => {
+                    if (typeof pendo !== 'undefined') {
+                      pendo.track('theme_changed', {
+                        new_theme: option.value,
+                        previous_theme: theme,
+                      })
+                    }
+                    setTheme(option.value)
+                  }}
                   className={cn(
                     'text-xs',
                     theme !== option.value && 'text-muted-foreground'
