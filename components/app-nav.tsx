@@ -77,6 +77,15 @@ export function AppNav({ username }: { username: string }) {
             <HugeiconsIcon icon={Logout03Icon} strokeWidth={2} className="h-3.5 w-3.5" />
             Logout
           </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+            data-tracking-id="nav-logout"
+          >
+            Show User Alert
+          </Button>
         </div>
       </div>
     </header>
