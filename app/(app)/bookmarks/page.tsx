@@ -34,6 +34,20 @@ export default function BookmarksPage() {
 
   const filteredBookmarks = useSearch(bookmarks, filters)
 
+  // Track search results when query changes
+  useEffect(() => {
+    if (filters.query.trim() && !isLoading) {
+      const timer = setTimeout(() => {
+        pendo.track("bookmarks_searched_with_results", {
+          query_length: filters.query.trim().length,
+          results_count: filteredBookmarks.length,
+          has_results: filteredBookmarks.length > 0
+        })
+      }, 500)
+      return () => clearTimeout(timer)
+    }
+  }, [filters.query, filteredBookmarks.length, isLoading])
+
   // Apply tag from URL query param
   useEffect(() => {
     const tagParam = searchParams.get('tag')

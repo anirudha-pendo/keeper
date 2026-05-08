@@ -15,12 +15,30 @@ interface FilterControlsProps {
 }
 
 export function FilterControls({ filters, onChange, availableTags = [], collections = [] }: FilterControlsProps) {
+  const getActiveFiltersCount = () => {
+    let count = 0
+    if (filters.sortBy && filters.sortBy !== 'recent') count++
+    if (filters.collectionId) count++
+    if (filters.favoriteOnly) count++
+    if (filters.selectedTags && filters.selectedTags.length > 0) count += filters.selectedTags.length
+    return count
+  }
+
   const handleTagToggle = (tag: string) => {
     const current = filters.selectedTags || []
     const updated = current.includes(tag)
       ? current.filter((t) => t !== tag)
       : [...current, tag]
     onChange({ selectedTags: updated })
+    pendo.track("filter_applied", {
+      filter_type: "tag",
+      filter_value: tag,
+      active_filters_count: getActiveFiltersCount(),
+      sort_by: filters.sortBy,
+      collection_id: filters.collectionId || "all",
+      favorite_only: filters.favoriteOnly,
+      selected_tags_count: updated.length
+    })
   }
 
   return (
@@ -31,6 +49,15 @@ export function FilterControls({ filters, onChange, availableTags = [], collecti
           value={filters.sortBy}
           onValueChange={(value) => {
             onChange({ sortBy: value as FilterOptions['sortBy'] })
+            pendo.track("filter_applied", {
+              filter_type: "sort",
+              filter_value: value,
+              active_filters_count: getActiveFiltersCount(),
+              sort_by: value,
+              collection_id: filters.collectionId || "all",
+              favorite_only: filters.favoriteOnly,
+              selected_tags_count: (filters.selectedTags || []).length
+            })
           }}
         >
           <SelectTrigger className="w-[180px]" data-tracking-id="sort-bookmarks-select">
@@ -50,6 +77,15 @@ export function FilterControls({ filters, onChange, availableTags = [], collecti
             value={filters.collectionId || '_all'}
             onValueChange={(value) => {
               onChange({ collectionId: value === '_all' ? undefined : value })
+              pendo.track("filter_applied", {
+                filter_type: "collection",
+                filter_value: value === '_all' ? "all" : value,
+                active_filters_count: getActiveFiltersCount(),
+                sort_by: filters.sortBy,
+                collection_id: value === '_all' ? "all" : value,
+                favorite_only: filters.favoriteOnly,
+                selected_tags_count: (filters.selectedTags || []).length
+              })
             }}
           >
             <SelectTrigger className="w-[180px]" data-tracking-id="collection-filter-select">
@@ -68,7 +104,17 @@ export function FilterControls({ filters, onChange, availableTags = [], collecti
         <Button
           variant={filters.favoriteOnly ? 'default' : 'outline'}
           onClick={() => {
-            onChange({ favoriteOnly: !filters.favoriteOnly })
+            const newFavoriteOnly = !filters.favoriteOnly
+            onChange({ favoriteOnly: newFavoriteOnly })
+            pendo.track("filter_applied", {
+              filter_type: "favorite",
+              filter_value: String(newFavoriteOnly),
+              active_filters_count: getActiveFiltersCount(),
+              sort_by: filters.sortBy,
+              collection_id: filters.collectionId || "all",
+              favorite_only: newFavoriteOnly,
+              selected_tags_count: (filters.selectedTags || []).length
+            })
           }}
           data-tracking-id="favorites-filter-button"
         >
