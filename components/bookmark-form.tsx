@@ -67,6 +67,14 @@ export function BookmarkForm({ isOpen, onClose, username, bookmark, collections 
     }
     const result = await checkDuplicateUrl(username, formData.url)
     if (result.success && result.data) {
+      if (typeof pendo !== 'undefined') {
+        const urlDomain = (() => { try { return new URL(formData.url).hostname } catch { return '' } })()
+        pendo.track('duplicate_url_detected', {
+          url_domain: urlDomain,
+          duplicate_bookmark_id: result.data.id,
+          duplicate_title: result.data.title,
+        })
+      }
       setDuplicateWarning({
         message: `A bookmark with this URL already exists: "${result.data.title}"`,
         bookmarkId: result.data.id,
@@ -102,10 +110,35 @@ export function BookmarkForm({ isOpen, onClose, username, bookmark, collections 
 
     try {
       let result
+      const urlDomain = (() => { try { return new URL(formData.url).hostname } catch { return '' } })()
+
       if (bookmark) {
         result = await updateBookmark(username, bookmark.id, formData)
+        if (result.success && typeof pendo !== 'undefined') {
+          pendo.track('bookmark_updated', {
+            bookmark_id: bookmark.id,
+            url_domain: urlDomain,
+            tag_count: formData.tags.length,
+            has_description: !!formData.description?.trim(),
+            is_favorite: formData.isFavorite,
+            priority_level: formData.priority,
+            has_collection: !!formData.collectionId,
+            collection_id: formData.collectionId || '',
+          })
+        }
       } else {
         result = await createBookmark(username, formData)
+        if (result.success && typeof pendo !== 'undefined') {
+          pendo.track('bookmark_created', {
+            url_domain: urlDomain,
+            tag_count: formData.tags.length,
+            has_description: !!formData.description?.trim(),
+            is_favorite: formData.isFavorite,
+            priority_level: formData.priority,
+            has_collection: !!formData.collectionId,
+            collection_id: formData.collectionId || '',
+          })
+        }
       }
 
       if (result.success) {

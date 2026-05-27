@@ -35,13 +35,20 @@ export default function AuthPage() {
 
     setUsername(trimmed)
 
+    const createdAt = new Date().toISOString()
+
     if (typeof pendo !== 'undefined') {
       pendo.identify({
         visitor: {
           id: trimmed,
           username: trimmed,
-          createdAt: new Date().toISOString(),
+          createdAt,
         },
+      })
+
+      pendo.track('user_signed_up', {
+        username: trimmed,
+        createdAt,
       })
     }
 

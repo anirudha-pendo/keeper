@@ -79,6 +79,13 @@ export function CollectionCard({ collection, bookmarkCount, onEdit, onDelete, on
             <AlertDialogCancel data-tracking-id="collection-delete-cancel-button">Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
+                if (typeof pendo !== 'undefined') {
+                  pendo.track('collection_deleted', {
+                    collection_id: collection.id,
+                    collection_name: collection.name,
+                    bookmark_count_in_collection: bookmarkCount,
+                  })
+                }
                 onDelete(collection.id)
                 setShowDeleteDialog(false)
               }}
