@@ -107,6 +107,9 @@ export default function SettingsPage() {
   }
 
   const handleLogout = () => {
+    if (typeof pendo !== 'undefined') {
+      pendo.clearSession()
+    }
     clearUsername()
     router.replace('/auth')
   }
