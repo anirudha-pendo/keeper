@@ -34,6 +34,17 @@ export default function AuthPage() {
     }
 
     setUsername(trimmed)
+
+    if (typeof pendo !== 'undefined') {
+      pendo.identify({
+        visitor: {
+          id: trimmed,
+          username: trimmed,
+          createdAt: new Date().toISOString(),
+        },
+      })
+    }
+
     router.replace('/dashboard')
   }
 
