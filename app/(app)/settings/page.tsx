@@ -41,6 +41,13 @@ export default function SettingsPage() {
       a.download = `keeper-${username}-bookmarks.json`
       a.click()
       URL.revokeObjectURL(url)
+      if (typeof pendo !== 'undefined') {
+        pendo.track('bookmarks_exported', {
+          bookmarkCount: result.data.length,
+          fileFormat: 'json',
+          fileName: `keeper-${username}-bookmarks.json`,
+        })
+      }
     }
   }
 
@@ -90,6 +97,14 @@ export default function SettingsPage() {
       setImportBookmarksList(parsed)
       setImportDuplicates(duplicates)
       setShowImportDialog(true)
+      if (typeof pendo !== 'undefined') {
+        pendo.track('import_file_parsed', {
+          fileFormat: format,
+          parsedCount: parsed.length,
+          duplicateCount: duplicates.size,
+          fileName: file.name,
+        })
+      }
     } catch (err: any) {
       toast.error(`Failed to parse file: ${err.message}`)
     }
@@ -99,6 +114,13 @@ export default function SettingsPage() {
     if (!username) return
     const result = await importBookmarks(username, bookmarks)
     if (result.success && result.data) {
+      if (typeof pendo !== 'undefined') {
+        pendo.track('bookmarks_import_completed', {
+          importedCount: result.data.imported,
+          totalParsed: bookmarks.length,
+          duplicatesSkipped: bookmarks.length - result.data.imported,
+        })
+      }
       toast.success(`Imported ${result.data.imported} bookmark${result.data.imported !== 1 ? 's' : ''}`)
       setShowImportDialog(false)
     } else {
@@ -108,6 +130,7 @@ export default function SettingsPage() {
 
   const handleLogout = () => {
     if (typeof pendo !== 'undefined') {
+      pendo.track('user_logged_out')
       pendo.clearSession()
     }
     clearUsername()
@@ -150,7 +173,15 @@ export default function SettingsPage() {
                   key={option.value}
                   variant={theme === option.value ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => setTheme(option.value)}
+                  onClick={() => {
+                    if (typeof pendo !== 'undefined') {
+                      pendo.track('theme_changed', {
+                        newTheme: option.value,
+                        previousTheme: theme,
+                      })
+                    }
+                    setTheme(option.value)
+                  }}
                   className={cn(
                     'text-xs',
                     theme !== option.value && 'text-muted-foreground'

@@ -1,16 +1,18 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useEffect, useRef } from 'react'
 import type { Bookmark, FilterOptions } from '@/lib/types'
 
 export function useSearch(bookmarks: Bookmark[], filters: FilterOptions): Bookmark[] {
-  return useMemo(() => {
-    let results = [...bookmarks]
+  const prevQueryRef = useRef<string>('')
+
+  const results = useMemo(() => {
+    let filtered = [...bookmarks]
 
     // Text search
     if (filters.query) {
       const q = filters.query.toLowerCase()
-      results = results.filter(
+      filtered = filtered.filter(
         (b) =>
           b.title.toLowerCase().includes(q) ||
           b.description?.toLowerCase().includes(q) ||
@@ -21,23 +23,23 @@ export function useSearch(bookmarks: Bookmark[], filters: FilterOptions): Bookma
 
     // Favorites only
     if (filters.favoriteOnly) {
-      results = results.filter((b) => b.isFavorite)
+      filtered = filtered.filter((b) => b.isFavorite)
     }
 
     // Tag filter
     if (filters.selectedTags && filters.selectedTags.length > 0) {
-      results = results.filter((b) =>
+      filtered = filtered.filter((b) =>
         filters.selectedTags.every((tag) => b.tags.includes(tag))
       )
     }
 
     // Collection filter
     if (filters.collectionId) {
-      results = results.filter((b) => b.collectionId === filters.collectionId)
+      filtered = filtered.filter((b) => b.collectionId === filters.collectionId)
     }
 
     // Sort
-    results.sort((a, b) => {
+    filtered.sort((a, b) => {
       switch (filters.sortBy) {
         case 'recent':
           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -55,6 +57,26 @@ export function useSearch(bookmarks: Bookmark[], filters: FilterOptions): Bookma
       }
     })
 
-    return results
+    return filtered
   }, [bookmarks, filters])
+
+  useEffect(() => {
+    const query = filters.query || ''
+    if (query && query !== prevQueryRef.current) {
+      if (typeof pendo !== 'undefined') {
+        pendo.track('bookmark_search_executed', {
+          query: query,
+          resultsCount: results.length,
+          totalBookmarks: bookmarks.length,
+          favoriteOnly: Boolean(filters.favoriteOnly),
+          selectedTags: (filters.selectedTags || []).join(','),
+          collectionId: filters.collectionId || '',
+          sortBy: filters.sortBy || '',
+        })
+      }
+    }
+    prevQueryRef.current = query
+  }, [filters.query, results.length, bookmarks.length, filters.favoriteOnly, filters.selectedTags, filters.collectionId, filters.sortBy])
+
+  return results
 }
