@@ -42,12 +42,34 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
     const result = await toggleFavorite(username, bookmark.id, bookmark.isFavorite)
     if (!result.success) {
       setIsFavorite(!newState)
+    } else {
+      // Pendo Track Event: bookmark_favorite_toggled
+      if (typeof window !== 'undefined' && (window as any).pendo) {
+        (window as any).pendo.track("bookmark_favorite_toggled", {
+          new_favorite_state: newState,
+          url_domain: new URL(bookmark.url).hostname,
+          priority: bookmark.priority,
+        });
+      }
     }
   }
 
   const handleDelete = async () => {
     const result = await deleteBookmark(username, bookmark.id)
     if (result.success) {
+      // Pendo Track Event: bookmark_deleted
+      if (typeof window !== 'undefined' && (window as any).pendo) {
+        const ageMs = Date.now() - new Date(bookmark.createdAt).getTime()
+        const ageDays = Math.floor(ageMs / (1000 * 60 * 60 * 24))
+        (window as any).pendo.track("bookmark_deleted", {
+          url_domain: new URL(bookmark.url).hostname,
+          had_tags: bookmark.tags.length > 0,
+          was_favorite: bookmark.isFavorite,
+          priority: bookmark.priority,
+          bookmark_age_days: ageDays,
+        });
+      }
+
       setShowDeleteDialog(false)
       onDelete?.()
     }
