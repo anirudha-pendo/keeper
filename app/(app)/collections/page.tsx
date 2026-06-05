@@ -52,6 +52,13 @@ export default function CollectionsPage() {
     const result = await createCollection(username, data)
     if (result.success) {
       toast.success('Collection created')
+      if (typeof pendo !== 'undefined') {
+        pendo.track('collection_created', {
+          collectionName: data.name,
+          color: data.color,
+          hasDescription: !!data.description,
+        })
+      }
       loadData()
     } else {
       throw new Error(result.error)
@@ -63,6 +70,14 @@ export default function CollectionsPage() {
     const result = await updateCollection(username, editingCollection.id, data)
     if (result.success) {
       toast.success('Collection updated')
+      if (typeof pendo !== 'undefined') {
+        pendo.track('collection_updated', {
+          collectionId: editingCollection.id,
+          collectionName: data.name,
+          color: data.color,
+          hasDescription: !!data.description,
+        })
+      }
       loadData()
     } else {
       throw new Error(result.error)
@@ -74,6 +89,12 @@ export default function CollectionsPage() {
     const result = await deleteCollection(username, id)
     if (result.success) {
       toast.success('Collection deleted')
+      if (typeof pendo !== 'undefined') {
+        pendo.track('collection_deleted', {
+          collectionId: id,
+          bookmarkCount: getBookmarkCount(id),
+        })
+      }
       loadData()
     }
   }
