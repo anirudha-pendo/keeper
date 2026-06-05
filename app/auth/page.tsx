@@ -45,6 +45,12 @@ export default function AuthPage() {
       })
     }
 
+    if (typeof pendo !== 'undefined') {
+      pendo.track('user_signed_up', {
+        usernameLength: trimmed.length,
+      })
+    }
+
     router.replace('/dashboard')
   }
 

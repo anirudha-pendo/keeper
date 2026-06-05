@@ -109,6 +109,30 @@ export function BookmarkForm({ isOpen, onClose, username, bookmark, collections 
       }
 
       if (result.success) {
+        if (typeof pendo !== 'undefined') {
+          if (bookmark) {
+            pendo.track('bookmark_updated', {
+              bookmarkId: bookmark.id,
+              tags: formData.tags.join(','),
+              tagCount: formData.tags.length,
+              priority: formData.priority,
+              isFavorite: formData.isFavorite,
+              collectionId: formData.collectionId || '',
+              hasDescription: !!formData.description,
+            })
+          } else {
+            pendo.track('bookmark_created', {
+              url: formData.url,
+              tags: formData.tags.join(','),
+              tagCount: formData.tags.length,
+              priority: formData.priority,
+              isFavorite: formData.isFavorite,
+              collectionId: formData.collectionId || '',
+              hasDescription: !!formData.description,
+              hasDuplicateWarning: !!duplicateWarning,
+            })
+          }
+        }
         onClose()
       } else {
         setError(result.error || 'Failed to save bookmark')
