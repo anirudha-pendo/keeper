@@ -42,12 +42,31 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
     const result = await toggleFavorite(username, bookmark.id, bookmark.isFavorite)
     if (!result.success) {
       setIsFavorite(!newState)
+    } else if (typeof pendo !== 'undefined') {
+      pendo.track('bookmark_favorite_toggled', {
+        bookmarkId: bookmark.id,
+        bookmarkTitle: bookmark.title,
+        bookmarkDomain: new URL(bookmark.url).hostname,
+        newFavoriteState: newState,
+        priority: bookmark.priority,
+      })
     }
   }
 
   const handleDelete = async () => {
     const result = await deleteBookmark(username, bookmark.id)
     if (result.success) {
+      if (typeof pendo !== 'undefined') {
+        pendo.track('bookmark_deleted', {
+          bookmarkId: bookmark.id,
+          bookmarkTitle: bookmark.title,
+          bookmarkUrl: bookmark.url,
+          bookmarkDomain: new URL(bookmark.url).hostname,
+          isFavorite: bookmark.isFavorite,
+          tagsCount: bookmark.tags.length,
+          priority: bookmark.priority,
+        })
+      }
       setShowDeleteDialog(false)
       onDelete?.()
     }
@@ -186,6 +205,14 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
                   <DropdownMenuItem onClick={() => {
                     navigator.clipboard.writeText(bookmark.url)
                     toast.success('Link copied to clipboard')
+                    if (typeof pendo !== 'undefined') {
+                      pendo.track('bookmark_link_copied', {
+                        bookmarkId: bookmark.id,
+                        bookmarkTitle: bookmark.title,
+                        bookmarkUrl: bookmark.url,
+                        bookmarkDomain: new URL(bookmark.url).hostname,
+                      })
+                    }
                   }} data-tracking-id="bookmark-copy-link-action">
                     <HugeiconsIcon icon={Copy01Icon} strokeWidth={2} className="mr-2 h-4 w-4" />
                     Copy Link

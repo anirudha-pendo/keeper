@@ -34,6 +34,26 @@ export default function BookmarksPage() {
 
   const filteredBookmarks = useSearch(bookmarks, filters)
 
+  // Debounced search tracking
+  useEffect(() => {
+    if (!filters.query) return
+    const timer = setTimeout(() => {
+      if (typeof pendo !== 'undefined') {
+        pendo.track('bookmarks_searched', {
+          query: filters.query,
+          resultsCount: filteredBookmarks.length,
+          totalBookmarks: bookmarks.length,
+          favoriteOnly: filters.favoriteOnly,
+          selectedTagsCount: filters.selectedTags.length,
+          selectedTags: filters.selectedTags,
+          collectionId: filters.collectionId,
+          sortBy: filters.sortBy,
+        })
+      }
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [filters.query, filters.favoriteOnly, filters.selectedTags, filters.collectionId, filters.sortBy])
+
   // Apply tag from URL query param
   useEffect(() => {
     const tagParam = searchParams.get('tag')
