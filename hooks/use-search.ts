@@ -64,19 +64,17 @@ export function useSearch(bookmarks: Bookmark[], filters: FilterOptions): Bookma
     const query = filters.query || ''
     if (query && query !== prevQueryRef.current) {
       if (typeof pendo !== 'undefined') {
-        pendo.track('bookmark_search_executed', {
+        pendo.track('bookmarks_searched', {
           query: query,
+          queryLength: query.length,
           resultsCount: results.length,
           totalBookmarks: bookmarks.length,
-          favoriteOnly: Boolean(filters.favoriteOnly),
-          selectedTags: (filters.selectedTags || []).join(','),
-          collectionId: filters.collectionId || '',
-          sortBy: filters.sortBy || '',
+          hasActiveFilters: Boolean(filters.favoriteOnly || (filters.selectedTags && filters.selectedTags.length > 0) || filters.collectionId),
         })
       }
     }
     prevQueryRef.current = query
-  }, [filters.query, results.length, bookmarks.length, filters.favoriteOnly, filters.selectedTags, filters.collectionId, filters.sortBy])
+  }, [filters.query, results.length, bookmarks.length, filters.favoriteOnly, filters.selectedTags, filters.collectionId])
 
   return results
 }

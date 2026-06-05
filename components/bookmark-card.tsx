@@ -47,7 +47,8 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
         pendo.track('bookmark_favorite_toggled', {
           bookmarkId: bookmark.id,
           newFavoriteState: newState,
-          bookmarkUrl: bookmark.url,
+          bookmarkTitle: bookmark.title,
+          domain: (() => { try { return new URL(bookmark.url).hostname } catch { return '' } })(),
         })
       }
     }
@@ -59,11 +60,10 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
       if (typeof pendo !== 'undefined') {
         pendo.track('bookmark_deleted', {
           bookmarkId: bookmark.id,
-          bookmarkUrl: bookmark.url,
           bookmarkTitle: bookmark.title,
+          domain: (() => { try { return new URL(bookmark.url).hostname } catch { return '' } })(),
           hadTags: bookmark.tags.length > 0,
           wasFavorite: bookmark.isFavorite,
-          priority: bookmark.priority,
         })
       }
       setShowDeleteDialog(false)
@@ -207,8 +207,8 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
                     if (typeof pendo !== 'undefined') {
                       pendo.track('bookmark_link_copied', {
                         bookmarkId: bookmark.id,
-                        bookmarkUrl: bookmark.url,
                         bookmarkTitle: bookmark.title,
+                        domain: (() => { try { return new URL(bookmark.url).hostname } catch { return '' } })(),
                       })
                     }
                   }} data-tracking-id="bookmark-copy-link-action">

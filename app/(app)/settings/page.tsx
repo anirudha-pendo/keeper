@@ -34,7 +34,8 @@ export default function SettingsPage() {
     if (!username) return
     const result = await getBookmarks(username)
     if (result.success && result.data) {
-      const blob = new Blob([JSON.stringify(result.data, null, 2)], { type: 'application/json' })
+      const jsonString = JSON.stringify(result.data, null, 2)
+      const blob = new Blob([jsonString], { type: 'application/json' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
@@ -44,8 +45,9 @@ export default function SettingsPage() {
       if (typeof pendo !== 'undefined') {
         pendo.track('bookmarks_exported', {
           bookmarkCount: result.data.length,
-          fileFormat: 'json',
-          fileName: `keeper-${username}-bookmarks.json`,
+          exportFormat: 'json',
+          fileSizeBytes: jsonString.length,
+          username,
         })
       }
     }
@@ -98,9 +100,10 @@ export default function SettingsPage() {
       setImportDuplicates(duplicates)
       setShowImportDialog(true)
       if (typeof pendo !== 'undefined') {
-        pendo.track('import_file_parsed', {
-          fileFormat: format,
-          parsedCount: parsed.length,
+        pendo.track('bookmarks_import_started', {
+          importFormat: format,
+          totalParsed: parsed.length,
+          newBookmarks: parsed.length - duplicates.size,
           duplicateCount: duplicates.size,
           fileName: file.name,
         })
@@ -117,8 +120,8 @@ export default function SettingsPage() {
       if (typeof pendo !== 'undefined') {
         pendo.track('bookmarks_import_completed', {
           importedCount: result.data.imported,
-          totalParsed: bookmarks.length,
-          duplicatesSkipped: bookmarks.length - result.data.imported,
+          skippedCount: bookmarks.length - result.data.imported,
+          totalAttempted: bookmarks.length,
         })
       }
       toast.success(`Imported ${result.data.imported} bookmark${result.data.imported !== 1 ? 's' : ''}`)
@@ -130,7 +133,9 @@ export default function SettingsPage() {
 
   const handleLogout = () => {
     if (typeof pendo !== 'undefined') {
-      pendo.track('user_logged_out')
+      pendo.track('user_logged_out', {
+        username,
+      })
       pendo.clearSession()
     }
     clearUsername()

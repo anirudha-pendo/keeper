@@ -117,28 +117,32 @@ export function BookmarkForm({ isOpen, onClose, username, bookmark, collections 
 
       if (result.success) {
         if (typeof pendo !== 'undefined') {
+          let domain = ''
+          try { domain = new URL(formData.url).hostname } catch {}
+
           if (bookmark) {
             pendo.track('bookmark_updated', {
               bookmarkId: bookmark.id,
-              url: formData.url,
-              title: formData.title,
-              tags: formData.tags.join(','),
+              hasTags: formData.tags.length > 0,
               tagCount: formData.tags.length,
               priority: formData.priority,
-              collectionId: formData.collectionId || '',
               isFavorite: formData.isFavorite,
-              hasDescription: Boolean(formData.description),
+              hasDescription: !!formData.description?.trim(),
+              hasCollection: !!formData.collectionId,
+              collectionId: formData.collectionId || '',
+              domain,
             })
           } else {
             pendo.track('bookmark_created', {
-              url: formData.url,
-              title: formData.title,
-              tags: formData.tags.join(','),
+              hasTags: formData.tags.length > 0,
               tagCount: formData.tags.length,
+              tags: formData.tags.join(','),
               priority: formData.priority,
-              collectionId: formData.collectionId || '',
               isFavorite: formData.isFavorite,
-              hasDescription: Boolean(formData.description),
+              hasDescription: !!formData.description?.trim(),
+              hasCollection: !!formData.collectionId,
+              collectionId: formData.collectionId || '',
+              domain,
             })
           }
         }

@@ -91,6 +91,7 @@ export default function CollectionsPage() {
       if (typeof pendo !== 'undefined') {
         pendo.track('collection_deleted', {
           collectionId: id,
+          bookmarkCount: getBookmarkCount(id),
         })
       }
       toast.success('Collection deleted')
