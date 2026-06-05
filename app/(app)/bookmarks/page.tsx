@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useUsername } from '@/hooks/use-username'
 import { useSearch } from '@/hooks/use-search'
 import { BookmarkGrid } from '@/components/bookmark-grid'
@@ -88,8 +88,42 @@ export default function BookmarksPage() {
     setShowBookmarkForm(true)
   }
 
+  const isInitialMount = useRef(true)
+
+  // Track search events after debounce completes
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false
+      return
+    }
+    if (filters.query && typeof pendo !== 'undefined') {
+      pendo.track('bookmarks_searched', {
+        query: filters.query,
+        queryLength: filters.query.length,
+        resultsCount: filteredBookmarks.length,
+        totalBookmarks: bookmarks.length,
+        hasActiveFilters: filters.favoriteOnly || (filters.selectedTags || []).length > 0 || !!filters.collectionId,
+      })
+    }
+  }, [filters.query])
+
   const updateFilters = (updates: Partial<FilterOptions>) => {
-    setFilters((prev) => ({ ...prev, ...updates }))
+    setFilters((prev) => {
+      const next = { ...prev, ...updates }
+      // Track non-query filter changes
+      const isNonQueryUpdate = 'favoriteOnly' in updates || 'selectedTags' in updates || 'collectionId' in updates || 'sortBy' in updates
+      if (isNonQueryUpdate && typeof pendo !== 'undefined') {
+        pendo.track('bookmarks_filtered', {
+          favoriteOnly: next.favoriteOnly,
+          selectedTagCount: (next.selectedTags || []).length,
+          selectedTags: (next.selectedTags || []).join(','),
+          collectionId: next.collectionId || '',
+          sortBy: next.sortBy,
+          resultsCount: filteredBookmarks.length,
+        })
+      }
+      return next
+    })
   }
 
   if (!username) return null
