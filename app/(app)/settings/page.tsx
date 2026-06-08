@@ -45,9 +45,8 @@ export default function SettingsPage() {
       if (typeof pendo !== 'undefined') {
         pendo.track('bookmarks_exported', {
           bookmarkCount: result.data.length,
-          exportFormat: 'json',
-          fileSizeBytes: jsonString.length,
-          username,
+          fileFormat: 'json',
+          fileName: `keeper-${username}-bookmarks.json`,
         })
       }
     }
@@ -100,12 +99,11 @@ export default function SettingsPage() {
       setImportDuplicates(duplicates)
       setShowImportDialog(true)
       if (typeof pendo !== 'undefined') {
-        pendo.track('bookmarks_import_started', {
-          importFormat: format,
-          totalParsed: parsed.length,
-          newBookmarks: parsed.length - duplicates.size,
+        pendo.track('import_file_parsed', {
+          fileFormat: format,
+          parsedCount: parsed.length,
           duplicateCount: duplicates.size,
-          fileName: file.name,
+          newCount: parsed.length - duplicates.size,
         })
       }
     } catch (err: any) {
@@ -118,10 +116,12 @@ export default function SettingsPage() {
     const result = await importBookmarks(username, bookmarks)
     if (result.success && result.data) {
       if (typeof pendo !== 'undefined') {
-        pendo.track('bookmarks_import_completed', {
+        pendo.track('bookmarks_imported', {
           importedCount: result.data.imported,
           skippedCount: bookmarks.length - result.data.imported,
-          totalAttempted: bookmarks.length,
+          totalParsed: bookmarks.length,
+          duplicateCount: result.data.duplicates || 0,
+          newBookmarkCount: result.data.imported,
         })
       }
       toast.success(`Imported ${result.data.imported} bookmark${result.data.imported !== 1 ? 's' : ''}`)

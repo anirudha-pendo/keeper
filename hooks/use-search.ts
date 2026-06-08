@@ -66,10 +66,10 @@ export function useSearch(bookmarks: Bookmark[], filters: FilterOptions): Bookma
       if (typeof pendo !== 'undefined') {
         pendo.track('bookmarks_searched', {
           query: query,
-          queryLength: query.length,
           resultsCount: results.length,
           totalBookmarks: bookmarks.length,
-          hasActiveFilters: Boolean(filters.favoriteOnly || (filters.selectedTags && filters.selectedTags.length > 0) || filters.collectionId),
+          hasFilters: Boolean(filters.favoriteOnly || (filters.selectedTags && filters.selectedTags.length > 0) || filters.collectionId),
+          sortBy: filters.sortBy,
         })
       }
     }

@@ -46,9 +46,8 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
       if (typeof pendo !== 'undefined') {
         pendo.track('bookmark_favorite_toggled', {
           bookmarkId: bookmark.id,
-          newFavoriteState: newState,
           bookmarkTitle: bookmark.title,
-          domain: (() => { try { return new URL(bookmark.url).hostname } catch { return '' } })(),
+          newFavoriteState: newState,
         })
       }
     }
@@ -58,12 +57,16 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
     const result = await deleteBookmark(username, bookmark.id)
     if (result.success) {
       if (typeof pendo !== 'undefined') {
+        let bookmarkDomain = ''
+        try { bookmarkDomain = new URL(bookmark.url).hostname } catch {}
         pendo.track('bookmark_deleted', {
           bookmarkId: bookmark.id,
           bookmarkTitle: bookmark.title,
-          domain: (() => { try { return new URL(bookmark.url).hostname } catch { return '' } })(),
+          bookmarkUrl: bookmark.url,
+          bookmarkDomain,
           hadTags: bookmark.tags.length > 0,
           wasFavorite: bookmark.isFavorite,
+          priority: bookmark.priority,
         })
       }
       setShowDeleteDialog(false)
@@ -205,10 +208,12 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
                     navigator.clipboard.writeText(bookmark.url)
                     toast.success('Link copied to clipboard')
                     if (typeof pendo !== 'undefined') {
+                      let bookmarkDomain = ''
+                      try { bookmarkDomain = new URL(bookmark.url).hostname } catch {}
                       pendo.track('bookmark_link_copied', {
                         bookmarkId: bookmark.id,
                         bookmarkTitle: bookmark.title,
-                        domain: (() => { try { return new URL(bookmark.url).hostname } catch { return '' } })(),
+                        bookmarkDomain,
                       })
                     }
                   }} data-tracking-id="bookmark-copy-link-action">

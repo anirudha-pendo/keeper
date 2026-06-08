@@ -89,7 +89,21 @@ export default function BookmarksPage() {
   }
 
   const updateFilters = (updates: Partial<FilterOptions>) => {
-    setFilters((prev) => ({ ...prev, ...updates }))
+    setFilters((prev) => {
+      const next = { ...prev, ...updates }
+      // Track filter changes (exclude query-only updates, handled by useSearch)
+      const isFilterChange = !('query' in updates) || Object.keys(updates).length > 1
+      if (isFilterChange && typeof pendo !== 'undefined') {
+        pendo.track('bookmarks_filtered', {
+          favoriteOnly: next.favoriteOnly,
+          selectedTags: (next.selectedTags || []).join(','),
+          selectedTagCount: (next.selectedTags || []).length,
+          collectionId: next.collectionId || '',
+          sortBy: next.sortBy,
+        })
+      }
+      return next
+    })
   }
 
   if (!username) return null

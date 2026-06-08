@@ -88,9 +88,11 @@ export default function CollectionsPage() {
     if (!username) return
     const result = await deleteCollection(username, id)
     if (result.success) {
+      const deleted = collections.find((c) => c.id === id)
       if (typeof pendo !== 'undefined') {
         pendo.track('collection_deleted', {
           collectionId: id,
+          collectionName: deleted?.name || '',
           bookmarkCount: getBookmarkCount(id),
         })
       }

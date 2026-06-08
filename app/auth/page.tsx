@@ -48,7 +48,6 @@ export default function AuthPage() {
       pendo.track('user_signed_up', {
         username: trimmed,
         usernameLength: trimmed.length,
-        createdAt,
       })
     }
 
