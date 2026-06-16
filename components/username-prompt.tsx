@@ -27,6 +27,10 @@ export function UsernamePrompt({ isOpen, onSubmit }: UsernamePromptProps) {
       return
     }
 
+    pendo.track('username_created', {
+      username_length: trimmed.length,
+    })
+
     onSubmit(trimmed)
   }
 
