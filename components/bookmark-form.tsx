@@ -109,6 +109,45 @@ export function BookmarkForm({ isOpen, onClose, username, bookmark, collections 
       }
 
       if (result.success) {
+        if (typeof window !== 'undefined' && window.pendo) {
+          let urlDomain = ''
+          try {
+            urlDomain = new URL(formData.url).hostname
+          } catch {
+            // ignore invalid URL
+          }
+
+          if (bookmark) {
+            const changedFields: string[] = []
+            if (bookmark.url !== formData.url) changedFields.push('url')
+            if (bookmark.title !== formData.title) changedFields.push('title')
+            if ((bookmark.description || '') !== (formData.description || '')) changedFields.push('description')
+            if (JSON.stringify(bookmark.tags) !== JSON.stringify(formData.tags)) changedFields.push('tags')
+            if (bookmark.priority !== formData.priority) changedFields.push('priority')
+            if (bookmark.isFavorite !== formData.isFavorite) changedFields.push('isFavorite')
+
+            window.pendo.track('bookmark_updated', {
+              bookmark_id: bookmark.id,
+              bookmark_url_domain: urlDomain,
+              has_description: Boolean(formData.description?.trim()),
+              tag_count: formData.tags.length,
+              tags: formData.tags.join(','),
+              priority: formData.priority,
+              is_favorite: formData.isFavorite,
+              fields_changed: changedFields.join(','),
+            })
+          } else {
+            window.pendo.track('bookmark_created', {
+              bookmark_url_domain: urlDomain,
+              has_description: Boolean(formData.description?.trim()),
+              tag_count: formData.tags.length,
+              tags: formData.tags.join(','),
+              priority: formData.priority,
+              is_favorite: formData.isFavorite,
+            })
+          }
+        }
+
         onClose()
       } else {
         setError(result.error || 'Failed to save bookmark')

@@ -1,16 +1,16 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useEffect, useRef } from 'react'
 import type { Bookmark, FilterOptions } from '@/lib/types'
 
 export function useSearch(bookmarks: Bookmark[], filters: FilterOptions): Bookmark[] {
-  return useMemo(() => {
-    let results = [...bookmarks]
+  const results = useMemo(() => {
+    let filtered = [...bookmarks]
 
     // Text search
     if (filters.query) {
       const q = filters.query.toLowerCase()
-      results = results.filter(
+      filtered = filtered.filter(
         (b) =>
           b.title.toLowerCase().includes(q) ||
           b.description?.toLowerCase().includes(q) ||
@@ -21,7 +21,7 @@ export function useSearch(bookmarks: Bookmark[], filters: FilterOptions): Bookma
 
     // Favorites only
     if (filters.favoriteOnly) {
-      results = results.filter((b) => b.isFavorite)
+      filtered = filtered.filter((b) => b.isFavorite)
     }
 
     // Tag filter
@@ -37,7 +37,7 @@ export function useSearch(bookmarks: Bookmark[], filters: FilterOptions): Bookma
     }
 
     // Sort
-    results.sort((a, b) => {
+    filtered.sort((a, b) => {
       switch (filters.sortBy) {
         case 'recent':
           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -55,6 +55,25 @@ export function useSearch(bookmarks: Bookmark[], filters: FilterOptions): Bookma
       }
     })
 
-    return results
+    return filtered
   }, [bookmarks, filters])
+
+  const prevQueryRef = useRef(filters.query)
+  useEffect(() => {
+    if (filters.query && filters.query !== prevQueryRef.current) {
+      if (typeof window !== 'undefined' && window.pendo) {
+        window.pendo.track('bookmark_search_executed', {
+          query: filters.query.substring(0, 100),
+          query_length: filters.query.length,
+          results_count: results.length,
+          total_bookmarks_count: bookmarks.length,
+          sort_by: filters.sortBy,
+          favorite_filter_active: filters.favoriteOnly,
+        })
+      }
+    }
+    prevQueryRef.current = filters.query
+  }, [filters.query, filters.sortBy, filters.favoriteOnly, results.length, bookmarks.length])
+
+  return results
 }
