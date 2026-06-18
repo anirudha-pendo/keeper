@@ -42,12 +42,28 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
     const result = await toggleFavorite(username, bookmark.id, bookmark.isFavorite)
     if (!result.success) {
       setIsFavorite(!newState)
+    } else if (typeof pendo !== 'undefined') {
+      const urlDomain = (() => { try { return new URL(bookmark.url).hostname } catch { return '' } })()
+      pendo.track('bookmark_favorite_toggled', {
+        bookmark_id: bookmark.id,
+        new_favorite_state: newState,
+        url_domain: urlDomain,
+      })
     }
   }
 
   const handleDelete = async () => {
     const result = await deleteBookmark(username, bookmark.id)
     if (result.success) {
+      if (typeof pendo !== 'undefined') {
+        pendo.track('bookmark_deleted', {
+          bookmark_id: bookmark.id,
+          was_favorite: bookmark.isFavorite,
+          priority_level: bookmark.priority,
+          had_tags: bookmark.tags.length > 0,
+          had_collection: !!bookmark.collectionId,
+        })
+      }
       setShowDeleteDialog(false)
       onDelete?.()
     }
@@ -186,6 +202,13 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
                   <DropdownMenuItem onClick={() => {
                     navigator.clipboard.writeText(bookmark.url)
                     toast.success('Link copied to clipboard')
+                    if (typeof pendo !== 'undefined') {
+                      const urlDomain = (() => { try { return new URL(bookmark.url).hostname } catch { return '' } })()
+                      pendo.track('bookmark_link_copied', {
+                        bookmark_id: bookmark.id,
+                        url_domain: urlDomain,
+                      })
+                    }
                   }} data-tracking-id="bookmark-copy-link-action">
                     <HugeiconsIcon icon={Copy01Icon} strokeWidth={2} className="mr-2 h-4 w-4" />
                     Copy Link

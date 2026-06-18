@@ -48,6 +48,22 @@ export function CollectionForm({ isOpen, onClose, onSubmit, collection }: Collec
     setIsSubmitting(true)
     try {
       await onSubmit({ name: name.trim(), description: description.trim() || undefined, color })
+      if (typeof pendo !== 'undefined') {
+        if (collection) {
+          pendo.track('collection_updated', {
+            collection_id: collection.id,
+            collection_name: name.trim(),
+            has_description: !!description.trim(),
+            color_selected: color,
+          })
+        } else {
+          pendo.track('collection_created', {
+            collection_name: name.trim(),
+            has_description: !!description.trim(),
+            color_selected: color,
+          })
+        }
+      }
       onClose()
     } catch (err: any) {
       setError(err.message || 'An error occurred')

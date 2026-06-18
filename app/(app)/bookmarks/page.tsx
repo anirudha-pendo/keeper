@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useUsername } from '@/hooks/use-username'
 import { useSearch } from '@/hooks/use-search'
 import { BookmarkGrid } from '@/components/bookmark-grid'
@@ -33,6 +33,22 @@ export default function BookmarksPage() {
   })
 
   const filteredBookmarks = useSearch(bookmarks, filters)
+
+  // Track search queries with debounce
+  const searchTimerRef = useRef<NodeJS.Timeout>()
+  useEffect(() => {
+    if (!filters.query) return
+    clearTimeout(searchTimerRef.current)
+    searchTimerRef.current = setTimeout(() => {
+      if (typeof pendo !== 'undefined') {
+        pendo.track('bookmarks_searched', {
+          query: filters.query,
+          results_count: filteredBookmarks.length,
+        })
+      }
+    }, 300)
+    return () => clearTimeout(searchTimerRef.current)
+  }, [filters.query, filteredBookmarks.length])
 
   // Apply tag from URL query param
   useEffect(() => {

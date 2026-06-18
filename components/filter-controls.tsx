@@ -21,6 +21,13 @@ export function FilterControls({ filters, onChange, availableTags = [], collecti
       ? current.filter((t) => t !== tag)
       : [...current, tag]
     onChange({ selectedTags: updated })
+    if (typeof pendo !== 'undefined') {
+      pendo.track('bookmarks_filtered', {
+        filter_type: 'tag',
+        selected_tags: updated.join(','),
+        favorites_only: filters.favoriteOnly,
+      })
+    }
   }
 
   return (
@@ -31,6 +38,11 @@ export function FilterControls({ filters, onChange, availableTags = [], collecti
           value={filters.sortBy}
           onValueChange={(value) => {
             onChange({ sortBy: value as FilterOptions['sortBy'] })
+            if (typeof pendo !== 'undefined') {
+              pendo.track('bookmarks_sorted', {
+                sort_type: value,
+              })
+            }
           }}
         >
           <SelectTrigger className="w-[180px]" data-tracking-id="sort-bookmarks-select">
@@ -49,7 +61,15 @@ export function FilterControls({ filters, onChange, availableTags = [], collecti
           <Select
             value={filters.collectionId || '_all'}
             onValueChange={(value) => {
-              onChange({ collectionId: value === '_all' ? undefined : value })
+              const collectionId = value === '_all' ? undefined : value
+              onChange({ collectionId })
+              if (typeof pendo !== 'undefined') {
+                pendo.track('bookmarks_filtered', {
+                  filter_type: 'collection',
+                  collection_id: collectionId || '',
+                  favorites_only: filters.favoriteOnly,
+                })
+              }
             }}
           >
             <SelectTrigger className="w-[180px]" data-tracking-id="collection-filter-select">
@@ -68,7 +88,14 @@ export function FilterControls({ filters, onChange, availableTags = [], collecti
         <Button
           variant={filters.favoriteOnly ? 'default' : 'outline'}
           onClick={() => {
-            onChange({ favoriteOnly: !filters.favoriteOnly })
+            const newFavState = !filters.favoriteOnly
+            onChange({ favoriteOnly: newFavState })
+            if (typeof pendo !== 'undefined') {
+              pendo.track('bookmarks_filtered', {
+                filter_type: 'favorites',
+                favorites_only: newFavState,
+              })
+            }
           }}
           data-tracking-id="favorites-filter-button"
         >
