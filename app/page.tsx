@@ -8,6 +8,18 @@ export default function Page() {
   const { username, isLoading } = useUsername()
   const router = useRouter()
 
+  // Pendo Track Event: bookmarks_searched
+  useEffect(() => {
+    if (filters.query.trim().length > 0 && typeof window !== 'undefined' && window.pendo) {
+      window.pendo.track('bookmarks_searched', {
+        query_length: filters.query.trim().length,
+        results_count: filteredBookmarks.length,
+        total_bookmarks: bookmarks.length,
+        has_results: filteredBookmarks.length > 0,
+      })
+    }
+  }, [filters.query])
+
   useEffect(() => {
     if (!isLoading) {
       router.replace(username ? '/dashboard' : '/auth')
