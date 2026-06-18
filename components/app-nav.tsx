@@ -30,6 +30,9 @@ export function AppNav({ username }: { username: string }) {
   const { clearUsername } = useUsername()
 
   const handleLogout = () => {
+    (window as any).pendo?.track('user_logged_out', {
+      username: username,
+    })
     clearUsername()
     router.replace('/auth')
   }
