@@ -27,6 +27,7 @@ export default function SettingsPage() {
   const [showImportDialog, setShowImportDialog] = useState(false)
   const [importBookmarksList, setImportBookmarksList] = useState<BookmarkInput[]>([])
   const [importDuplicates, setImportDuplicates] = useState<Set<string>>(new Set())
+  const [importFormat, setImportFormat] = useState<'json' | 'html'>('json')
   const jsonFileRef = useRef<HTMLInputElement>(null)
   const htmlFileRef = useRef<HTMLInputElement>(null)
 
@@ -41,11 +42,18 @@ export default function SettingsPage() {
       a.download = `keeper-${username}-bookmarks.json`
       a.click()
       URL.revokeObjectURL(url)
+      if (typeof pendo !== 'undefined') {
+        pendo.track('bookmarks_exported', {
+          bookmark_count: result.data.length,
+          file_format: 'json',
+        })
+      }
     }
   }
 
   const handleImportFile = async (file: File, format: 'json' | 'html') => {
     if (!username) return
+    setImportFormat(format)
     try {
       const content = await file.text()
       let parsed: BookmarkInput[]
@@ -87,6 +95,15 @@ export default function SettingsPage() {
         }
       })
 
+      if (typeof pendo !== 'undefined') {
+        pendo.track('import_file_parsed', {
+          file_format: format,
+          total_parsed: parsed.length,
+          new_count: parsed.length - duplicates.size,
+          duplicate_count: duplicates.size,
+        })
+      }
+
       setImportBookmarksList(parsed)
       setImportDuplicates(duplicates)
       setShowImportDialog(true)
@@ -99,6 +116,13 @@ export default function SettingsPage() {
     if (!username) return
     const result = await importBookmarks(username, bookmarks)
     if (result.success && result.data) {
+      if (typeof pendo !== 'undefined') {
+        pendo.track('bookmarks_imported', {
+          imported_count: result.data.imported,
+          skipped_count: importBookmarksList.length - result.data.imported,
+          file_format: importFormat,
+        })
+      }
       toast.success(`Imported ${result.data.imported} bookmark${result.data.imported !== 1 ? 's' : ''}`)
       setShowImportDialog(false)
     } else {
@@ -108,6 +132,7 @@ export default function SettingsPage() {
 
   const handleLogout = () => {
     if (typeof pendo !== 'undefined') {
+      pendo.track('user_logged_out')
       pendo.clearSession()
     }
     clearUsername()
@@ -150,7 +175,15 @@ export default function SettingsPage() {
                   key={option.value}
                   variant={theme === option.value ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => setTheme(option.value)}
+                  onClick={() => {
+                    if (option.value !== theme && typeof pendo !== 'undefined') {
+                      pendo.track('theme_changed', {
+                        theme: option.value,
+                        previous_theme: theme,
+                      })
+                    }
+                    setTheme(option.value)
+                  }}
                   className={cn(
                     'text-xs',
                     theme !== option.value && 'text-muted-foreground'

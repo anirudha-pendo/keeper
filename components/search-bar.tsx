@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Input } from '@/components/ui/input'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Search01Icon } from '@hugeicons/core-free-icons'
@@ -13,6 +13,7 @@ interface SearchBarProps {
 
 export function SearchBar({ value, onChange, placeholder = 'Search bookmarks...' }: SearchBarProps) {
   const [inputValue, setInputValue] = useState(value)
+  const lastTrackedQuery = useRef('')
 
   useEffect(() => {
     setInputValue(value)
@@ -21,6 +22,13 @@ export function SearchBar({ value, onChange, placeholder = 'Search bookmarks...'
   useEffect(() => {
     const timer = setTimeout(() => {
       onChange(inputValue)
+      const trimmed = inputValue.trim()
+      if (trimmed && trimmed !== lastTrackedQuery.current && typeof pendo !== 'undefined') {
+        pendo.track('bookmarks_searched', {
+          query: trimmed,
+        })
+        lastTrackedQuery.current = trimmed
+      }
     }, 300)
 
     return () => clearTimeout(timer)
