@@ -109,6 +109,16 @@ export function BookmarkForm({ isOpen, onClose, username, bookmark, collections 
       }
 
       if (result.success) {
+        if (typeof pendo !== 'undefined') {
+          const trackProps = {
+            tag_count: formData.tags.length,
+            priority: formData.priority,
+            is_favorite: formData.isFavorite,
+            has_description: Boolean(formData.description?.trim()),
+            has_collection: Boolean(formData.collectionId),
+          }
+          pendo.track(bookmark ? "bookmark_updated" : "bookmark_created", trackProps)
+        }
         onClose()
       } else {
         setError(result.error || 'Failed to save bookmark')

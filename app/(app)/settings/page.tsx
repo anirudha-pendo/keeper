@@ -29,11 +29,18 @@ export default function SettingsPage() {
   const [importDuplicates, setImportDuplicates] = useState<Set<string>>(new Set())
   const jsonFileRef = useRef<HTMLInputElement>(null)
   const htmlFileRef = useRef<HTMLInputElement>(null)
+  const importFormatRef = useRef<'json' | 'html'>('json')
 
   const handleExport = async () => {
     if (!username) return
     const result = await getBookmarks(username)
     if (result.success && result.data) {
+      if (typeof pendo !== 'undefined') {
+        pendo.track("bookmarks_exported", {
+          format: "json",
+          bookmark_count: result.data.length,
+        })
+      }
       const blob = new Blob([JSON.stringify(result.data, null, 2)], { type: 'application/json' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -87,6 +94,7 @@ export default function SettingsPage() {
         }
       })
 
+      importFormatRef.current = format
       setImportBookmarksList(parsed)
       setImportDuplicates(duplicates)
       setShowImportDialog(true)
@@ -99,6 +107,14 @@ export default function SettingsPage() {
     if (!username) return
     const result = await importBookmarks(username, bookmarks)
     if (result.success && result.data) {
+      if (typeof pendo !== 'undefined') {
+        pendo.track("bookmarks_imported", {
+          format: importFormatRef.current,
+          imported_count: result.data.imported,
+          skipped_count: importBookmarksList.length - result.data.imported,
+          total_in_file: importBookmarksList.length,
+        })
+      }
       toast.success(`Imported ${result.data.imported} bookmark${result.data.imported !== 1 ? 's' : ''}`)
       setShowImportDialog(false)
     } else {

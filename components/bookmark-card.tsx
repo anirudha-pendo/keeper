@@ -42,12 +42,26 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
     const result = await toggleFavorite(username, bookmark.id, bookmark.isFavorite)
     if (!result.success) {
       setIsFavorite(!newState)
+    } else if (typeof pendo !== 'undefined') {
+      pendo.track("bookmark_favorite_toggled", {
+        new_state: newState,
+        bookmark_id: bookmark.id,
+      })
     }
   }
 
   const handleDelete = async () => {
     const result = await deleteBookmark(username, bookmark.id)
     if (result.success) {
+      if (typeof pendo !== 'undefined') {
+        pendo.track("bookmark_deleted", {
+          had_tags: bookmark.tags.length > 0,
+          tag_count: bookmark.tags.length,
+          was_favorite: bookmark.isFavorite,
+          priority: bookmark.priority,
+          had_collection: Boolean(bookmark.collectionId),
+        })
+      }
       setShowDeleteDialog(false)
       onDelete?.()
     }
