@@ -43,6 +43,9 @@ export default function AuthPage() {
           createdAt: new Date().toISOString(),
         },
       })
+      pendo.track('user_signed_up', {
+        username_length: trimmed.length,
+      })
     }
 
     router.replace('/dashboard')

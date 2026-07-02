@@ -23,6 +23,12 @@ export function ImportDialog({ isOpen, onClose, bookmarks, duplicateUrls, onConf
     setIsImporting(true)
     try {
       await onConfirm(newBookmarks)
+      const pendo = (window as any).pendo
+      pendo?.track('bookmarks_imported', {
+        total_found: bookmarks.length,
+        new_imported_count: newBookmarks.length,
+        duplicate_skipped_count: duplicateBookmarks.length,
+      })
     } finally {
       setIsImporting(false)
     }

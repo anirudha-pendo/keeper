@@ -27,6 +27,9 @@ export function UsernamePrompt({ isOpen, onSubmit }: UsernamePromptProps) {
       return
     }
 
+    (window as any).pendo?.track('username_set', {
+      username_length: trimmed.length,
+    })
     onSubmit(trimmed)
   }
 
