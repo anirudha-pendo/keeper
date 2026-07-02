@@ -53,8 +53,7 @@ export default function CollectionsPage() {
     if (result.success) {
       if (typeof pendo !== 'undefined') {
         pendo.track('collection_created', {
-          collection_name: data.name,
-          has_description: Boolean(data.description?.trim()),
+          has_description: !!data.description?.trim(),
           color: data.color,
         })
       }
@@ -71,8 +70,8 @@ export default function CollectionsPage() {
     if (result.success) {
       if (typeof pendo !== 'undefined') {
         pendo.track('collection_updated', {
-          collection_name: data.name,
-          has_description: Boolean(data.description?.trim()),
+          collection_id: editingCollection.id,
+          has_description: !!data.description?.trim(),
           color: data.color,
         })
       }
@@ -85,11 +84,13 @@ export default function CollectionsPage() {
 
   const handleDelete = async (id: string) => {
     if (!username) return
+    const bookmarkCount = getBookmarkCount(id)
     const result = await deleteCollection(username, id)
     if (result.success) {
       if (typeof pendo !== 'undefined') {
         pendo.track('collection_deleted', {
-          bookmark_count: getBookmarkCount(id),
+          collection_id: id,
+          bookmark_count: bookmarkCount,
         })
       }
       toast.success('Collection deleted')

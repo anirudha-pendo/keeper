@@ -40,28 +40,35 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
     const newState = !isFavorite
     setIsFavorite(newState)
     const result = await toggleFavorite(username, bookmark.id, bookmark.isFavorite)
-    if (!result.success) {
-      setIsFavorite(!newState)
+    if (result.success) {
+      if (typeof pendo !== 'undefined') {
+        const domain = (() => { try { return new URL(bookmark.url).hostname } catch { return 'unknown' } })()
+        pendo.track('bookmark_favorite_toggled', {
+          bookmark_id: bookmark.id,
+          new_state: newState,
+          domain,
+        })
+      }
     } else {
-      (window as any).pendo?.track('bookmark_favorite_toggled', {
-        bookmark_id: bookmark.id,
-        new_state: newState,
-        url_domain: new URL(bookmark.url).hostname,
-      })
+      setIsFavorite(!newState)
     }
   }
 
   const handleDelete = async () => {
     const result = await deleteBookmark(username, bookmark.id)
     if (result.success) {
-      (window as any).pendo?.track('bookmark_deleted', {
-        bookmark_id: bookmark.id,
-        url_domain: new URL(bookmark.url).hostname,
-        tag_count: bookmark.tags.length,
-        priority: bookmark.priority,
-        is_favorite: bookmark.isFavorite,
-        has_collection: Boolean(bookmark.collectionId),
-      })
+      if (typeof pendo !== 'undefined') {
+        const domain = (() => { try { return new URL(bookmark.url).hostname } catch { return 'unknown' } })()
+        pendo.track('bookmark_deleted', {
+          bookmark_id: bookmark.id,
+          had_tags: bookmark.tags.length > 0,
+          tags_count: bookmark.tags.length,
+          was_favorite: bookmark.isFavorite,
+          priority: bookmark.priority,
+          had_collection: !!bookmark.collectionId,
+          domain,
+        })
+      }
       setShowDeleteDialog(false)
       onDelete?.()
     }
@@ -200,11 +207,13 @@ export function BookmarkCard({ bookmark, username, onEdit, onDelete }: BookmarkC
                   <DropdownMenuItem onClick={() => {
                     navigator.clipboard.writeText(bookmark.url)
                     toast.success('Link copied to clipboard')
-                    const pendo = (window as any).pendo
-                    pendo?.track('bookmark_link_copied', {
-                      bookmark_id: bookmark.id,
-                      url_domain: new URL(bookmark.url).hostname,
-                    })
+                    if (typeof pendo !== 'undefined') {
+                      const domain = (() => { try { return new URL(bookmark.url).hostname } catch { return 'unknown' } })()
+                      pendo.track('bookmark_link_copied', {
+                        bookmark_id: bookmark.id,
+                        domain,
+                      })
+                    }
                   }} data-tracking-id="bookmark-copy-link-action">
                     <HugeiconsIcon icon={Copy01Icon} strokeWidth={2} className="mr-2 h-4 w-4" />
                     Copy Link

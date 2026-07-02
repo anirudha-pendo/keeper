@@ -109,29 +109,29 @@ export function BookmarkForm({ isOpen, onClose, username, bookmark, collections 
       }
 
       if (result.success) {
-        if (bookmark) {
-          (window as any).pendo?.track('bookmark_updated', {
-            bookmark_id: bookmark.id,
-            url_domain: new URL(formData.url).hostname,
-            has_description: Boolean(formData.description?.trim()),
-            tag_count: formData.tags.length,
-            tags: formData.tags.join(','),
-            priority: formData.priority,
-            is_favorite: formData.isFavorite,
-            has_collection: Boolean(formData.collectionId),
-            collection_id: formData.collectionId || '',
-          })
-        } else {
-          (window as any).pendo?.track('bookmark_created', {
-            url_domain: new URL(formData.url).hostname,
-            has_description: Boolean(formData.description?.trim()),
-            tag_count: formData.tags.length,
-            tags: formData.tags.join(','),
-            priority: formData.priority,
-            is_favorite: formData.isFavorite,
-            has_collection: Boolean(formData.collectionId),
-            collection_id: formData.collectionId || '',
-          })
+        if (typeof pendo !== 'undefined') {
+          const domain = (() => { try { return new URL(formData.url).hostname } catch { return 'unknown' } })()
+          if (bookmark) {
+            pendo.track('bookmark_updated', {
+              bookmark_id: bookmark.id,
+              has_description: !!formData.description?.trim(),
+              tags_count: formData.tags.length,
+              priority: formData.priority,
+              is_favorite: formData.isFavorite,
+              has_collection: !!formData.collectionId,
+              domain,
+            })
+          } else {
+            pendo.track('bookmark_created', {
+              has_description: !!formData.description?.trim(),
+              tags_count: formData.tags.length,
+              priority: formData.priority,
+              is_favorite: formData.isFavorite,
+              has_collection: !!formData.collectionId,
+              domain,
+              had_duplicate_warning: !!duplicateWarning,
+            })
+          }
         }
         onClose()
       } else {

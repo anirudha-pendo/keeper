@@ -27,7 +27,6 @@ export default function SettingsPage() {
   const [showImportDialog, setShowImportDialog] = useState(false)
   const [importBookmarksList, setImportBookmarksList] = useState<BookmarkInput[]>([])
   const [importDuplicates, setImportDuplicates] = useState<Set<string>>(new Set())
-  const [importFormat, setImportFormat] = useState<'json' | 'html'>('json')
   const jsonFileRef = useRef<HTMLInputElement>(null)
   const htmlFileRef = useRef<HTMLInputElement>(null)
 
@@ -35,17 +34,18 @@ export default function SettingsPage() {
     if (!username) return
     const result = await getBookmarks(username)
     if (result.success && result.data) {
+      const fileName = `keeper-${username}-bookmarks.json`
       const blob = new Blob([JSON.stringify(result.data, null, 2)], { type: 'application/json' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `keeper-${username}-bookmarks.json`
+      a.download = fileName
       a.click()
       URL.revokeObjectURL(url)
       if (typeof pendo !== 'undefined') {
         pendo.track('bookmarks_exported', {
-          bookmark_count: result.data.length,
-          file_format: 'json',
+          bookmarks_count: result.data.length,
+          file_name: fileName,
         })
       }
     }
@@ -53,7 +53,6 @@ export default function SettingsPage() {
 
   const handleImportFile = async (file: File, format: 'json' | 'html') => {
     if (!username) return
-    setImportFormat(format)
     try {
       const content = await file.text()
       let parsed: BookmarkInput[]
@@ -95,15 +94,6 @@ export default function SettingsPage() {
         }
       })
 
-      if (typeof pendo !== 'undefined') {
-        pendo.track('import_file_parsed', {
-          file_format: format,
-          total_parsed: parsed.length,
-          new_count: parsed.length - duplicates.size,
-          duplicate_count: duplicates.size,
-        })
-      }
-
       setImportBookmarksList(parsed)
       setImportDuplicates(duplicates)
       setShowImportDialog(true)
@@ -118,9 +108,10 @@ export default function SettingsPage() {
     if (result.success && result.data) {
       if (typeof pendo !== 'undefined') {
         pendo.track('bookmarks_imported', {
+          total_found: importBookmarksList.length,
           imported_count: result.data.imported,
-          skipped_count: importBookmarksList.length - result.data.imported,
-          file_format: importFormat,
+          skipped_count: bookmarks.length - result.data.imported,
+          duplicates_count: importDuplicates.size,
         })
       }
       toast.success(`Imported ${result.data.imported} bookmark${result.data.imported !== 1 ? 's' : ''}`)
@@ -132,7 +123,9 @@ export default function SettingsPage() {
 
   const handleLogout = () => {
     if (typeof pendo !== 'undefined') {
-      pendo.track('user_logged_out')
+      pendo.track('user_logged_out', {
+        username: username || '',
+      })
       pendo.clearSession()
     }
     clearUsername()
@@ -178,7 +171,7 @@ export default function SettingsPage() {
                   onClick={() => {
                     if (option.value !== theme && typeof pendo !== 'undefined') {
                       pendo.track('theme_changed', {
-                        theme: option.value,
+                        new_theme: option.value,
                         previous_theme: theme,
                       })
                     }
