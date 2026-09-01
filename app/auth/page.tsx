@@ -3,8 +3,20 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUsername } from '@/hooks/use-username'
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'
-import { Field, FieldGroup, FieldLabel, FieldDescription } from '@/components/ui/field'
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from '@/components/ui/card'
+import {
+  Field,
+  FieldGroup,
+  FieldLabel,
+  FieldDescription,
+} from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 
@@ -43,6 +55,9 @@ export default function AuthPage() {
           createdAt: new Date().toISOString(),
         },
       })
+      pendo.track('user_signed_up', {
+        username_length: trimmed.length,
+      })
     }
 
     router.replace('/dashboard')
@@ -69,7 +84,8 @@ export default function AuthPage() {
         <CardHeader>
           <CardTitle className="text-lg">Welcome to Keeper</CardTitle>
           <CardDescription>
-            Choose a username to get started. Your bookmarks will be saved under this username.
+            Choose a username to get started. Your bookmarks will be saved under
+            this username.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -100,7 +116,11 @@ export default function AuthPage() {
           </FieldGroup>
         </CardContent>
         <CardFooter>
-          <Button onClick={handleSubmit} className="w-full" data-tracking-id="auth-submit-button">
+          <Button
+            onClick={handleSubmit}
+            className="w-full"
+            data-tracking-id="auth-submit-button"
+          >
             Continue
           </Button>
         </CardFooter>

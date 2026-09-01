@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useUsername } from '@/hooks/use-username'
 import { useSearch } from '@/hooks/use-search'
 import { BookmarkGrid } from '@/components/bookmark-grid'
@@ -33,6 +33,23 @@ export default function BookmarksPage() {
   })
 
   const filteredBookmarks = useSearch(bookmarks, filters)
+
+  const prevQueryRef = useRef(filters.query)
+  useEffect(() => {
+    if (filters.query && filters.query !== prevQueryRef.current) {
+      if (typeof pendo !== 'undefined') {
+        pendo.track('bookmarks_searched', {
+          query_length: filters.query.length,
+          results_count: filteredBookmarks.length,
+          has_tag_filter: (filters.selectedTags?.length ?? 0) > 0,
+          has_collection_filter: !!filters.collectionId,
+          favorites_only: filters.favoriteOnly,
+          sort_by: filters.sortBy,
+        })
+      }
+    }
+    prevQueryRef.current = filters.query
+  }, [filters, filteredBookmarks.length])
 
   // Apply tag from URL query param
   useEffect(() => {
@@ -104,8 +121,16 @@ export default function BookmarksPage() {
               {bookmarks.length} bookmark{bookmarks.length !== 1 ? 's' : ''}
             </p>
           </div>
-          <Button onClick={handleAddNew} size="sm" data-tracking-id="add-new-bookmark-button">
-            <HugeiconsIcon icon={Add01Icon} strokeWidth={2} className="mr-1.5 h-4 w-4" />
+          <Button
+            onClick={handleAddNew}
+            size="sm"
+            data-tracking-id="add-new-bookmark-button"
+          >
+            <HugeiconsIcon
+              icon={Add01Icon}
+              strokeWidth={2}
+              className="mr-1.5 h-4 w-4"
+            />
             New
           </Button>
         </div>
@@ -131,7 +156,11 @@ export default function BookmarksPage() {
         <div className="flex items-center justify-center py-16">
           <p className="text-muted-foreground">Loading bookmarks...</p>
         </div>
-      ) : filteredBookmarks.length === 0 && filters.query === '' && !filters.favoriteOnly && (filters.selectedTags || []).length === 0 && !filters.collectionId ? (
+      ) : filteredBookmarks.length === 0 &&
+        filters.query === '' &&
+        !filters.favoriteOnly &&
+        (filters.selectedTags || []).length === 0 &&
+        !filters.collectionId ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <p className="text-muted-foreground text-lg mb-2">No bookmarks yet</p>
           <p className="text-muted-foreground text-sm mb-4">

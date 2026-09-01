@@ -7,7 +7,13 @@ import { useTheme, type Theme } from '@/hooks/use-theme'
 import { getBookmarks, importBookmarks } from '@/app/actions/bookmarks'
 import { parseJsonImport, parseHtmlImport } from '@/lib/import-parsers'
 import { ImportDialog } from '@/components/import-dialog'
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -25,16 +31,29 @@ export default function SettingsPage() {
   const router = useRouter()
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const [showImportDialog, setShowImportDialog] = useState(false)
-  const [importBookmarksList, setImportBookmarksList] = useState<BookmarkInput[]>([])
-  const [importDuplicates, setImportDuplicates] = useState<Set<string>>(new Set())
+  const [importBookmarksList, setImportBookmarksList] = useState<
+    BookmarkInput[]
+  >([])
+  const [importDuplicates, setImportDuplicates] = useState<Set<string>>(
+    new Set(),
+  )
   const jsonFileRef = useRef<HTMLInputElement>(null)
   const htmlFileRef = useRef<HTMLInputElement>(null)
+  const [importFormat, setImportFormat] = useState<'json' | 'html'>('json')
 
   const handleExport = async () => {
     if (!username) return
     const result = await getBookmarks(username)
     if (result.success && result.data) {
-      const blob = new Blob([JSON.stringify(result.data, null, 2)], { type: 'application/json' })
+      if (typeof pendo !== 'undefined') {
+        pendo.track('bookmarks_exported', {
+          bookmark_count: result.data.length,
+          format: 'json',
+        })
+      }
+      const blob = new Blob([JSON.stringify(result.data, null, 2)], {
+        type: 'application/json',
+      })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
@@ -87,6 +106,7 @@ export default function SettingsPage() {
         }
       })
 
+      setImportFormat(format)
       setImportBookmarksList(parsed)
       setImportDuplicates(duplicates)
       setShowImportDialog(true)
@@ -99,7 +119,17 @@ export default function SettingsPage() {
     if (!username) return
     const result = await importBookmarks(username, bookmarks)
     if (result.success && result.data) {
-      toast.success(`Imported ${result.data.imported} bookmark${result.data.imported !== 1 ? 's' : ''}`)
+      if (typeof pendo !== 'undefined') {
+        pendo.track('bookmarks_imported', {
+          imported_count: result.data.imported,
+          skipped_count: importBookmarksList.length - result.data.imported,
+          format: importFormat,
+          total_in_file: importBookmarksList.length,
+        })
+      }
+      toast.success(
+        `Imported ${result.data.imported} bookmark${result.data.imported !== 1 ? 's' : ''}`,
+      )
       setShowImportDialog(false)
     } else {
       toast.error(result.error || 'Import failed')
@@ -108,6 +138,7 @@ export default function SettingsPage() {
 
   const handleLogout = () => {
     if (typeof pendo !== 'undefined') {
+      pendo.track('user_logged_out')
       pendo.clearSession()
     }
     clearUsername()
@@ -150,10 +181,18 @@ export default function SettingsPage() {
                   key={option.value}
                   variant={theme === option.value ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => setTheme(option.value)}
+                  onClick={() => {
+                    if (typeof pendo !== 'undefined') {
+                      pendo.track('theme_changed', {
+                        new_theme: option.value,
+                        previous_theme: theme,
+                      })
+                    }
+                    setTheme(option.value)
+                  }}
                   className={cn(
                     'text-xs',
-                    theme !== option.value && 'text-muted-foreground'
+                    theme !== option.value && 'text-muted-foreground',
                   )}
                   data-tracking-id={`settings-theme-${option.value}`}
                 >
@@ -245,7 +284,8 @@ export default function SettingsPage() {
             {showLogoutConfirm ? (
               <div className="space-y-3">
                 <p className="text-xs text-muted-foreground">
-                  Are you sure you want to log out? You can log back in with your username to access your bookmarks.
+                  Are you sure you want to log out? You can log back in with
+                  your username to access your bookmarks.
                 </p>
                 <div className="flex items-center gap-2">
                   <Button

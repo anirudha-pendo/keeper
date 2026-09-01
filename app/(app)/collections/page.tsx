@@ -3,7 +3,13 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUsername } from '@/hooks/use-username'
-import { getBookmarks, getCollections, createCollection, updateCollection, deleteCollection } from '@/app/actions/bookmarks'
+import {
+  getBookmarks,
+  getCollections,
+  createCollection,
+  updateCollection,
+  deleteCollection,
+} from '@/app/actions/bookmarks'
 import { CollectionCard } from '@/components/collection-card'
 import { CollectionForm } from '@/components/collection-form'
 import { Button } from '@/components/ui/button'
@@ -19,7 +25,9 @@ export default function CollectionsPage() {
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
-  const [editingCollection, setEditingCollection] = useState<Collection | undefined>()
+  const [editingCollection, setEditingCollection] = useState<
+    Collection | undefined
+  >()
 
   useEffect(() => {
     if (username) {
@@ -47,10 +55,20 @@ export default function CollectionsPage() {
     return bookmarks.filter((b) => b.collectionId === collectionId).length
   }
 
-  const handleCreate = async (data: { name: string; description?: string; color: string }) => {
+  const handleCreate = async (data: {
+    name: string
+    description?: string
+    color: string
+  }) => {
     if (!username) return
     const result = await createCollection(username, data)
     if (result.success) {
+      if (typeof pendo !== 'undefined') {
+        pendo.track('collection_created', {
+          has_description: !!data.description?.trim(),
+          color: data.color,
+        })
+      }
       toast.success('Collection created')
       loadData()
     } else {
@@ -58,10 +76,20 @@ export default function CollectionsPage() {
     }
   }
 
-  const handleUpdate = async (data: { name: string; description?: string; color: string }) => {
+  const handleUpdate = async (data: {
+    name: string
+    description?: string
+    color: string
+  }) => {
     if (!username || !editingCollection) return
     const result = await updateCollection(username, editingCollection.id, data)
     if (result.success) {
+      if (typeof pendo !== 'undefined') {
+        pendo.track('collection_updated', {
+          has_description: !!data.description?.trim(),
+          color: data.color,
+        })
+      }
       toast.success('Collection updated')
       loadData()
     } else {
@@ -73,6 +101,11 @@ export default function CollectionsPage() {
     if (!username) return
     const result = await deleteCollection(username, id)
     if (result.success) {
+      if (typeof pendo !== 'undefined') {
+        pendo.track('collection_deleted', {
+          bookmark_count: getBookmarkCount(id),
+        })
+      }
       toast.success('Collection deleted')
       loadData()
     }
@@ -101,11 +134,20 @@ export default function CollectionsPage() {
           <div>
             <h1 className="text-lg font-semibold">Collections</h1>
             <p className="text-xs text-muted-foreground">
-              {collections.length} collection{collections.length !== 1 ? 's' : ''}
+              {collections.length} collection
+              {collections.length !== 1 ? 's' : ''}
             </p>
           </div>
-          <Button onClick={handleAddNew} size="sm" data-tracking-id="add-new-collection-button">
-            <HugeiconsIcon icon={Add01Icon} strokeWidth={2} className="mr-1.5 h-4 w-4" />
+          <Button
+            onClick={handleAddNew}
+            size="sm"
+            data-tracking-id="add-new-collection-button"
+          >
+            <HugeiconsIcon
+              icon={Add01Icon}
+              strokeWidth={2}
+              className="mr-1.5 h-4 w-4"
+            />
             New
           </Button>
         </div>
@@ -117,7 +159,9 @@ export default function CollectionsPage() {
         </div>
       ) : collections.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">
-          <p className="text-muted-foreground text-lg mb-2">No collections yet</p>
+          <p className="text-muted-foreground text-lg mb-2">
+            No collections yet
+          </p>
           <p className="text-muted-foreground text-sm mb-4">
             Create a collection to organize your bookmarks
           </p>
