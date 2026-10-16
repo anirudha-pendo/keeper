@@ -43,6 +43,15 @@ export default function AuthPage() {
           createdAt: new Date().toISOString(),
         },
       })
+      pendo.track("user_logged_in", {
+        username: trimmed,
+        username_length: trimmed.length,
+      })
+
+      // Track successful account creation
+      pendo.track('Account created', {
+        username_length: trimmed.length,
+      })
     }
 
     router.replace('/dashboard')
