@@ -17,12 +17,16 @@ import {
 import type { Bookmark, BookmarkInput, Collection, ServerActionResult } from '@/lib/types'
 import { pendoTrack } from '@/lib/pendo-track'
 
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
+}
+
 export async function getBookmarks(username: string): Promise<ServerActionResult<Bookmark[]>> {
   try {
     const bookmarks = await getUserBookmarks(username)
     return { success: true, data: bookmarks }
-  } catch (error: any) {
-    return { success: false, error: error.message }
+  } catch (error: unknown) {
+    return { success: false, error: getErrorMessage(error) }
   }
 }
 
@@ -30,8 +34,8 @@ export async function getTags(username: string): Promise<ServerActionResult<stri
   try {
     const tags = await getAllTags(username)
     return { success: true, data: tags }
-  } catch (error: any) {
-    return { success: false, error: error.message }
+  } catch (error: unknown) {
+    return { success: false, error: getErrorMessage(error) }
   }
 }
 
@@ -68,8 +72,8 @@ export async function createBookmark(username: string, data: BookmarkInput): Pro
     })
 
     return { success: true, data: bookmark }
-  } catch (error: any) {
-    return { success: false, error: error.message }
+  } catch (error: unknown) {
+    return { success: false, error: getErrorMessage(error) }
   }
 }
 
@@ -97,8 +101,8 @@ export async function updateBookmark(username: string, id: string, data: Partial
     })
 
     return { success: true }
-  } catch (error: any) {
-    return { success: false, error: error.message }
+  } catch (error: unknown) {
+    return { success: false, error: getErrorMessage(error) }
   }
 }
 
@@ -113,8 +117,8 @@ export async function deleteBookmark(username: string, id: string): Promise<Serv
     })
 
     return { success: true }
-  } catch (error: any) {
-    return { success: false, error: error.message }
+  } catch (error: unknown) {
+    return { success: false, error: getErrorMessage(error) }
   }
 }
 
@@ -123,8 +127,8 @@ export async function toggleFavorite(username: string, id: string, currentState:
     await dbUpdateBookmark(username, id, { isFavorite: !currentState })
     revalidatePath('/bookmarks')
     return { success: true }
-  } catch (error: any) {
-    return { success: false, error: error.message }
+  } catch (error: unknown) {
+    return { success: false, error: getErrorMessage(error) }
   }
 }
 
@@ -133,8 +137,8 @@ export async function checkDuplicateUrl(username: string, url: string): Promise<
   try {
     const existing = await findBookmarkByUrl(username, url)
     return { success: true, data: existing }
-  } catch (error: any) {
-    return { success: false, error: error.message }
+  } catch (error: unknown) {
+    return { success: false, error: getErrorMessage(error) }
   }
 }
 
@@ -164,8 +168,8 @@ export async function checkDuplicateUrls(username: string, urls: string[]): Prom
     })
 
     return { success: true, data: duplicates }
-  } catch (error: any) {
-    return { success: false, error: error.message }
+  } catch (error: unknown) {
+    return { success: false, error: getErrorMessage(error) }
   }
 }
 
@@ -225,8 +229,8 @@ export async function importBookmarks(username: string, inputs: BookmarkInput[])
     })
 
     return { success: true, data: { imported: newBookmarks.length, skipped } }
-  } catch (error: any) {
-    return { success: false, error: error.message }
+  } catch (error: unknown) {
+    return { success: false, error: getErrorMessage(error) }
   }
 }
 
@@ -235,8 +239,8 @@ export async function getCollections(username: string): Promise<ServerActionResu
   try {
     const collections = await getUserCollections(username)
     return { success: true, data: collections }
-  } catch (error: any) {
-    return { success: false, error: error.message }
+  } catch (error: unknown) {
+    return { success: false, error: getErrorMessage(error) }
   }
 }
 
@@ -261,8 +265,8 @@ export async function createCollection(username: string, data: { name: string; d
     })
 
     return { success: true, data: collection }
-  } catch (error: any) {
-    return { success: false, error: error.message }
+  } catch (error: unknown) {
+    return { success: false, error: getErrorMessage(error) }
   }
 }
 
@@ -277,8 +281,8 @@ export async function updateCollection(username: string, id: string, data: { nam
     })
 
     return { success: true }
-  } catch (error: any) {
-    return { success: false, error: error.message }
+  } catch (error: unknown) {
+    return { success: false, error: getErrorMessage(error) }
   }
 }
 
@@ -294,8 +298,8 @@ export async function deleteCollection(username: string, id: string): Promise<Se
     })
 
     return { success: true }
-  } catch (error: any) {
-    return { success: false, error: error.message }
+  } catch (error: unknown) {
+    return { success: false, error: getErrorMessage(error) }
   }
 }
 
@@ -343,7 +347,7 @@ export async function getDashboardStats(username: string): Promise<ServerActionR
         topTags,
       },
     }
-  } catch (error: any) {
-    return { success: false, error: error.message }
+  } catch (error: unknown) {
+    return { success: false, error: getErrorMessage(error) }
   }
 }
