@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { after } from 'next/server'
 import {
   getUserBookmarks,
   addBookmark,
@@ -14,14 +15,19 @@ import {
   updateCollection as dbUpdateCollection,
   deleteCollection as dbDeleteCollection,
 } from '@/lib/bookmarks-db'
+import { trackPendoEvent } from '@/lib/pendo-track'
 import type { Bookmark, BookmarkInput, Collection, ServerActionResult } from '@/lib/types'
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
+}
 
 export async function getBookmarks(username: string): Promise<ServerActionResult<Bookmark[]>> {
   try {
     const bookmarks = await getUserBookmarks(username)
     return { success: true, data: bookmarks }
-  } catch (error: any) {
-    return { success: false, error: error.message }
+  } catch (error) {
+    return { success: false, error: getErrorMessage(error) }
   }
 }
 
@@ -29,8 +35,8 @@ export async function getTags(username: string): Promise<ServerActionResult<stri
   try {
     const tags = await getAllTags(username)
     return { success: true, data: tags }
-  } catch (error: any) {
-    return { success: false, error: error.message }
+  } catch (error) {
+    return { success: false, error: getErrorMessage(error) }
   }
 }
 
@@ -55,9 +61,21 @@ export async function createBookmark(username: string, data: BookmarkInput): Pro
 
     await addBookmark(username, bookmark)
     revalidatePath('/bookmarks')
+    // Pendo: bookmark persisted on the server (sent after the response is returned)
+    after(() =>
+      trackPendoEvent('Bookmark created', username, {
+        bookmark_id: bookmark.id,
+        url_host: url.hostname,
+        tag_count: bookmark.tags.length,
+        is_favorite: bookmark.isFavorite,
+        priority: bookmark.priority,
+        has_description: Boolean(bookmark.description),
+        has_collection: Boolean(bookmark.collectionId),
+      })
+    )
     return { success: true, data: bookmark }
-  } catch (error: any) {
-    return { success: false, error: error.message }
+  } catch (error) {
+    return { success: false, error: getErrorMessage(error) }
   }
 }
 
@@ -77,9 +95,19 @@ export async function updateBookmark(username: string, id: string, data: Partial
 
     await dbUpdateBookmark(username, id, updates)
     revalidatePath('/bookmarks')
+    // Pendo: edited bookmark persisted on the server
+    after(() =>
+      trackPendoEvent('Bookmark updated', username, {
+        bookmark_id: id,
+        tag_count: data.tags?.length,
+        is_favorite: data.isFavorite,
+        priority: data.priority,
+        has_collection: data.collectionId !== undefined ? Boolean(data.collectionId) : undefined,
+      })
+    )
     return { success: true }
-  } catch (error: any) {
-    return { success: false, error: error.message }
+  } catch (error) {
+    return { success: false, error: getErrorMessage(error) }
   }
 }
 
@@ -87,9 +115,11 @@ export async function deleteBookmark(username: string, id: string): Promise<Serv
   try {
     await dbDeleteBookmark(username, id)
     revalidatePath('/bookmarks')
+    // Pendo: bookmark permanently removed from the server
+    after(() => trackPendoEvent('Bookmark deleted', username, { bookmark_id: id }))
     return { success: true }
-  } catch (error: any) {
-    return { success: false, error: error.message }
+  } catch (error) {
+    return { success: false, error: getErrorMessage(error) }
   }
 }
 
@@ -98,8 +128,8 @@ export async function toggleFavorite(username: string, id: string, currentState:
     await dbUpdateBookmark(username, id, { isFavorite: !currentState })
     revalidatePath('/bookmarks')
     return { success: true }
-  } catch (error: any) {
-    return { success: false, error: error.message }
+  } catch (error) {
+    return { success: false, error: getErrorMessage(error) }
   }
 }
 
@@ -108,8 +138,8 @@ export async function checkDuplicateUrl(username: string, url: string): Promise<
   try {
     const existing = await findBookmarkByUrl(username, url)
     return { success: true, data: existing }
-  } catch (error: any) {
-    return { success: false, error: error.message }
+  } catch (error) {
+    return { success: false, error: getErrorMessage(error) }
   }
 }
 
@@ -139,8 +169,8 @@ export async function checkDuplicateUrls(username: string, urls: string[]): Prom
     })
 
     return { success: true, data: duplicates }
-  } catch (error: any) {
-    return { success: false, error: error.message }
+  } catch (error) {
+    return { success: false, error: getErrorMessage(error) }
   }
 }
 
@@ -192,9 +222,17 @@ export async function importBookmarks(username: string, inputs: BookmarkInput[])
       revalidatePath('/bookmarks')
     }
 
+    // Pendo: import completed and new bookmarks persisted (duplicates skipped)
+    after(() =>
+      trackPendoEvent('Bookmarks imported', username, {
+        submitted_count: inputs.length,
+        imported_count: newBookmarks.length,
+        skipped_count: skipped,
+      })
+    )
     return { success: true, data: { imported: newBookmarks.length, skipped } }
-  } catch (error: any) {
-    return { success: false, error: error.message }
+  } catch (error) {
+    return { success: false, error: getErrorMessage(error) }
   }
 }
 
@@ -203,8 +241,8 @@ export async function getCollections(username: string): Promise<ServerActionResu
   try {
     const collections = await getUserCollections(username)
     return { success: true, data: collections }
-  } catch (error: any) {
-    return { success: false, error: error.message }
+  } catch (error) {
+    return { success: false, error: getErrorMessage(error) }
   }
 }
 
@@ -220,9 +258,17 @@ export async function createCollection(username: string, data: { name: string; d
 
     await dbAddCollection(username, collection)
     revalidatePath('/collections')
+    // Pendo: new collection persisted on the server
+    after(() =>
+      trackPendoEvent('Collection created', username, {
+        collection_id: collection.id,
+        color: collection.color,
+        has_description: Boolean(collection.description),
+      })
+    )
     return { success: true, data: collection }
-  } catch (error: any) {
-    return { success: false, error: error.message }
+  } catch (error) {
+    return { success: false, error: getErrorMessage(error) }
   }
 }
 
@@ -230,9 +276,17 @@ export async function updateCollection(username: string, id: string, data: { nam
   try {
     await dbUpdateCollection(username, id, data)
     revalidatePath('/collections')
+    // Pendo: edited collection persisted on the server
+    after(() =>
+      trackPendoEvent('Collection updated', username, {
+        collection_id: id,
+        color: data.color,
+        has_description: data.description !== undefined ? Boolean(data.description) : undefined,
+      })
+    )
     return { success: true }
-  } catch (error: any) {
-    return { success: false, error: error.message }
+  } catch (error) {
+    return { success: false, error: getErrorMessage(error) }
   }
 }
 
@@ -241,9 +295,11 @@ export async function deleteCollection(username: string, id: string): Promise<Se
     await dbDeleteCollection(username, id)
     revalidatePath('/collections')
     revalidatePath('/bookmarks')
+    // Pendo: collection removed and its bookmarks unassigned
+    after(() => trackPendoEvent('Collection deleted', username, { collection_id: id }))
     return { success: true }
-  } catch (error: any) {
-    return { success: false, error: error.message }
+  } catch (error) {
+    return { success: false, error: getErrorMessage(error) }
   }
 }
 
@@ -291,7 +347,7 @@ export async function getDashboardStats(username: string): Promise<ServerActionR
         topTags,
       },
     }
-  } catch (error: any) {
-    return { success: false, error: error.message }
+  } catch (error) {
+    return { success: false, error: getErrorMessage(error) }
   }
 }

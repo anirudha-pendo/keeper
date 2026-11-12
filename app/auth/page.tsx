@@ -43,6 +43,11 @@ export default function AuthPage() {
           createdAt: new Date().toISOString(),
         },
       })
+
+      // Pendo: new user identity persisted and identified (onboarding succeeded)
+      pendo.track('Account created', {
+        signup_method: 'username',
+      })
     }
 
     router.replace('/dashboard')
