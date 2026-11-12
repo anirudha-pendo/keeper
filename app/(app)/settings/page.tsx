@@ -90,8 +90,8 @@ export default function SettingsPage() {
       setImportBookmarksList(parsed)
       setImportDuplicates(duplicates)
       setShowImportDialog(true)
-    } catch (err: any) {
-      toast.error(`Failed to parse file: ${err.message}`)
+    } catch (err) {
+      toast.error(`Failed to parse file: ${err instanceof Error ? err.message : String(err)}`)
     }
   }
 
@@ -108,6 +108,10 @@ export default function SettingsPage() {
 
   const handleLogout = () => {
     if (typeof pendo !== 'undefined') {
+      // Pendo: logout completed; tracked before clearSession() so it is attributed to the current visitor
+      pendo.track('Session ended', {
+        source: 'settings',
+      })
       pendo.clearSession()
     }
     clearUsername()
